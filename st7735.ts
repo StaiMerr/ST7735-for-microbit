@@ -764,7 +764,15 @@ namespace ST7735 {
         const lineHeight = 12 * size;
         
         // Odstranění bílých znaků a rozdělení na jednotlivé hex hodnoty
-        const hexValues = hexString.replace(/\s+/g, '').split(',');
+        // Oprava: Místo RegExp použijeme metodu s řetězci
+        let cleanString = "";
+        for (let i = 0; i < hexString.length; i++) {
+            // Přeskočíme bílé znaky (mezera, tab, nový řádek)
+            if (hexString[i] !== ' ' && hexString[i] !== '\t' && hexString[i] !== '\n' && hexString[i] !== '\r') {
+                cleanString += hexString[i];
+            }
+        }
+        const hexValues = cleanString.split(',');
         
         // Převod na číselné hodnoty a odstranění neplatných hodnot
         const bytes: number[] = [];
@@ -772,7 +780,7 @@ namespace ST7735 {
             let value = hexValues[i].trim();
             
             // Kontrola, zda hodnota začíná "0x" nebo "0X"
-            if (value.startsWith("0x") || value.startsWith("0X")) {
+            if (value.length >= 2 && (value.substr(0, 2).toLowerCase() === "0x")) {
                 // Převod z hex na číslo
                 const numValue = parseInt(value, 16);
                 if (!isNaN(numValue) && numValue >= 0 && numValue <= 255) {
@@ -793,7 +801,11 @@ namespace ST7735 {
         
         for (let i = 0; i < bytes.length; i++) {
             // Formátovaný výpis hex hodnoty (vždy dva znaky s předponou 0x)
-            const hexText = "0x" + ("0" + bytes[i].toString(16).toUpperCase()).slice(-2);
+            let hexValue = bytes[i].toString(16).toUpperCase();
+            if (hexValue.length < 2) {
+                hexValue = "0" + hexValue;
+            }
+            const hexText = "0x" + hexValue;
             
             // Vykreslení hex hodnoty
             drawText(hexText, currentX, currentY, size, 0, color, bgColor);
@@ -841,7 +853,15 @@ namespace ST7735 {
         format: number = 0
     ): void {
         // Odstranění bílých znaků a rozdělení na jednotlivé hex hodnoty
-        const hexValues = hexString.replace(/\s+/g, '').split(',');
+        // Oprava: Místo RegExp použijeme metodu s řetězci
+        let cleanString = "";
+        for (let i = 0; i < hexString.length; i++) {
+            // Přeskočíme bílé znaky (mezera, tab, nový řádek)
+            if (hexString[i] !== ' ' && hexString[i] !== '\t' && hexString[i] !== '\n' && hexString[i] !== '\r') {
+                cleanString += hexString[i];
+            }
+        }
+        const hexValues = cleanString.split(',');
         
         // Převod na číselné hodnoty a odstranění neplatných hodnot
         const bytes: number[] = [];
@@ -849,7 +869,7 @@ namespace ST7735 {
             let value = hexValues[i].trim();
             
             // Kontrola, zda hodnota začíná "0x" nebo "0X"
-            if (value.startsWith("0x") || value.startsWith("0X")) {
+            if (value.length >= 2 && (value.substr(0, 2).toLowerCase() === "0x")) {
                 // Převod z hex na číslo
                 const numValue = parseInt(value, 16);
                 if (!isNaN(numValue) && numValue >= 0 && numValue <= 255) {
