@@ -997,4 +997,185 @@ namespace ST7735 {
             return -1; // Neplatný znak
         }
     }
+
+    /**
+     * Zobrazení obrázku z pole RGB565 hodnot
+     * @param imageData Pole čísel v RGB565 formátu
+     * @param x X pozice začátku zobrazení
+     * @param y Y pozice začátku zobrazení
+     * @param width Šířka obrázku v pixelech
+     * @param height Výška obrázku v pixelech
+     */
+    //% block="zobrazit obrázek z pole barev %imageData na x %x y %y šířka %width výška %height"
+    //% weight=80 group="Kreslení"
+    //% inlineInputMode=inline
+    //% x.min=0 x.max=127 y.min=0 y.max=159
+    //% width.min=1 width.max=128 height.min=1 height.max=160
+    export function displayImage(
+        imageData: number[],
+        x: number,
+        y: number,
+        width: number,
+        height: number
+    ): void {
+        // Kontrola rozměrů obrázku
+        if (x + width > WIDTH) width = WIDTH - x;
+        if (y + height > HEIGHT) height = HEIGHT - y;
+        
+        // Nastavení adresního okna pro obrázek
+        setWindow(x, y, x + width - 1, y + height - 1);
+        
+        // Vykreslení obrázku
+        pins.digitalWritePin(TFT_CS, 0);
+        pins.digitalWritePin(TFT_RS, 1);
+        
+        // Pro každý pixel v imageData
+        let pixelCount = 0;
+        const totalPixels = width * height;
+        
+        for (let i = 0; i < imageData.length && pixelCount < totalPixels; i++) {
+            const color = imageData[i];
+            pins.spiWrite((color >> 8) & 0xFF);  // Vyšší bajt
+            pins.spiWrite(color & 0xFF);         // Nižší bajt
+            pixelCount++;
+        }
+        
+        // Pokud nemáme dostatek dat, doplníme černými pixely
+        while (pixelCount < totalPixels) {
+            pins.spiWrite(0);  // Černá barva (vyšší bajt)
+            pins.spiWrite(0);  // Černá barva (nižší bajt)
+            pixelCount++;
+        }
+        
+        pins.digitalWritePin(TFT_CS, 1);
+    }
+
+    /**
+     * Vykreslení jednoduché barevné duhy
+     * @param x X pozice
+     * @param y Y pozice
+     * @param width Šířka
+     * @param height Výška
+     */
+    //% block="vykreslit duhu na x %x y %y šířka %width výška %height"
+    //% weight=79 group="Kreslení"
+    //% inlineInputMode=inline
+    //% x.min=0 x.max=127 y.min=0 y.max=159
+    //% width.min=1 width.max=128 height.min=1 height.max=160
+    export function drawRainbow(
+        x: number, 
+        y: number, 
+        width: number, 
+        height: number
+    ): void {
+        // Barvy duhy
+        const colors = [
+            RED(),      // Červená
+            YELLOW(),   // Žlutá
+            GREEN(),    // Zelená
+            CYAN(),     // Azurová
+            BLUE(),     // Modrá
+            MAGENTA()   // Purpurová
+        ];
+        
+        // Výpočet výšky jednoho pruhu
+        const stripHeight = Math.max(1, Math.floor(height / colors.length));
+        
+        // Vykreslení pruhů duhy
+        for (let i = 0; i < colors.length; i++) {
+            const stripY = y + i * stripHeight;
+            const h = (i === colors.length - 1) ? 
+                     (height - (colors.length - 1) * stripHeight) : 
+                     stripHeight;
+            
+            fillRect(x, stripY, width, h, colors[i]);
+        }
+    }
+
+    /**
+     * Vytvoření barevného přechodu (gradient)
+     * @param x X pozice
+     * @param y Y pozice
+     * @param width Šířka
+     * @param height Výška
+     * @param color1 Počáteční barva
+     * @param color2 Koncová barva
+     * @param horizontal Je přechod horizontální? (jinak vertikální)
+     */
+    //% block="vykreslit barevný přechod na x %x y %y šířka %width výška %height od %color1 do %color2 || horizontální %horizontal"
+    //% weight=78 group="Kreslení"
+    //% inlineInputMode=inline
+    //% x.min=0 x.max=127 y.min=0 y.max=159
+    //% width.min=1 width.max=128 height.min=1 height.max=160
+    //% expandableArgumentMode="toggle"
+    export function drawGradient(
+        x: number, 
+        y: number, 
+        width: number, 
+        height: number, 
+        color1: number, 
+        color2: number,
+        horizontal: boolean = true
+    ): void {
+        // Kontrola rozměrů
+        if (x + width > WIDTH) width = WIDTH - x;
+        if (y + height > HEIGHT) height = HEIGHT - y;
+        
+        // Rozložení barev na komponenty
+        const r1 = (color1 & 0x1F);
+        const g1 = ((color1 >> 5) & 0x3F);
+        const b1 = ((color1 >> 11) & 0x1F);
+        
+        const r2 = (color2 & 0x1F);
+        const g2 = ((color2 >> 5) & 0x3F);
+        const b2 = ((color2 >> 11) & 0x1F);
+        
+        // Nastavení adresního okna
+        setWindow(x, y, x + width - 1, y + height - 1);
+        
+        pins.digitalWritePin(TFT_CS, 0);
+        pins.digitalWritePin(TFT_RS, 1);
+        
+        if (horizontal) {
+            // Horizontální přechod
+            for (let py = 0; py < height; py++) {
+                for (let px = 0; px < width; px++) {
+                    // Výpočet poměru pozice
+                    const ratio = px / (width - 1);
+                    
+                    // Lineární interpolace barevných komponent
+                    const r = Math.floor(r1 + (r2 - r1) * ratio);
+                    const g = Math.floor(g1 + (g2 - g1) * ratio);
+                    const b = Math.floor(b1 + (b2 - b1) * ratio);
+                    
+                    // Složení barvy
+                    const color = (b << 11) | (g << 5) | r;
+                    
+                    pins.spiWrite((color >> 8) & 0xFF);
+                    pins.spiWrite(color & 0xFF);
+                }
+            }
+        } else {
+            // Vertikální přechod
+            for (let py = 0; py < height; py++) {
+                // Výpočet poměru pozice
+                const ratio = py / (height - 1);
+                
+                // Lineární interpolace barevných komponent
+                const r = Math.floor(r1 + (r2 - r1) * ratio);
+                const g = Math.floor(g1 + (g2 - g1) * ratio);
+                const b = Math.floor(b1 + (b2 - b1) * ratio);
+                
+                // Složení barvy
+                const color = (b << 11) | (g << 5) | r;
+                
+                for (let px = 0; px < width; px++) {
+                    pins.spiWrite((color >> 8) & 0xFF);
+                    pins.spiWrite(color & 0xFF);
+                }
+            }
+        }
+        
+        pins.digitalWritePin(TFT_CS, 1);
+    }
 }
