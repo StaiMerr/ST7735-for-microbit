@@ -1,5 +1,5 @@
 /**
- * Ultra-optimalizovaný driver pro ST7735 1.8" TFT displej
+ * Zjednodušený driver pro ST7735 1.8" TFT displej
  */
 //% weight=100 color=#0050BB icon="\uf108"
 //% groups='["Základní", "Barvy", "Kreslení", "Text"]'
@@ -88,37 +88,6 @@ namespace ST7735 {
         pins.digitalWritePin(TFT_CS, 1)
     }
 
-    // Iniciace přímého vykreslování na celou obrazovku
-    function beginFullScreenDraw(): void {
-        // Nastavení adresního okna pro celý displej
-        cmd(ST7735_CASET)
-        pins.digitalWritePin(TFT_CS, 0)
-        pins.digitalWritePin(TFT_RS, 1)
-        pins.spiWrite(0)
-        pins.spiWrite(0)
-        pins.spiWrite(0)
-        pins.spiWrite(WIDTH - 1)
-        pins.digitalWritePin(TFT_CS, 1)
-
-        cmd(ST7735_RASET)
-        pins.digitalWritePin(TFT_CS, 0)
-        pins.digitalWritePin(TFT_RS, 1)
-        pins.spiWrite(0)
-        pins.spiWrite(0)
-        pins.spiWrite(0)
-        pins.spiWrite(HEIGHT - 1)
-        pins.digitalWritePin(TFT_CS, 1)
-
-        cmd(ST7735_RAMWR)
-        pins.digitalWritePin(TFT_CS, 0)
-        pins.digitalWritePin(TFT_RS, 1)
-    }
-
-    // Ukončení přímého vykreslování
-    function endDraw(): void {
-        pins.digitalWritePin(TFT_CS, 1)
-    }
-
     // Nastavení adresního okna pro konkrétní oblast
     function setWindow(x0: number, y0: number, x1: number, y1: number): void {
         cmd(ST7735_CASET)
@@ -192,12 +161,15 @@ namespace ST7735 {
     //% block="vyplnit displej barvou %color"
     //% weight=90 group="Kreslení"
     export function fillColor(color: number): void {
-        // Začátek přímého vykreslování
-        beginFullScreenDraw()
+        // Nastavení adresního okna pro celý displej
+        setWindow(0, 0, WIDTH - 1, HEIGHT - 1)
 
         // Komponenty barvy
         const hi = (color >> 8) & 0xFF
         const lo = color & 0xFF
+
+        pins.digitalWritePin(TFT_CS, 0)
+        pins.digitalWritePin(TFT_RS, 1)
 
         // Vyplňování displeje v blocích pro maximální rychlost
         const CHUNK_SIZE = 1280 // Optimální velikost bloku
@@ -211,8 +183,7 @@ namespace ST7735 {
             }
         }
 
-        // Ukončení vykreslování
-        endDraw()
+        pins.digitalWritePin(TFT_CS, 1)
     }
 
     /**
@@ -251,27 +222,6 @@ namespace ST7735 {
     }
 
     /**
-     * Vykreslení obrysu obdélníku
-     * @param x x pozice
-     * @param y y pozice
-     * @param w šířka
-     * @param h výška
-     * @param color barva v RGB565 formátu
-     */
-    //% block="vykreslit obrys obdélníku na x %x y %y šířka %w výška %h barva %color"
-    //% weight=86 group="Kreslení"
-    //% inlineInputMode=inline
-    //% x.min=0 x.max=127 y.min=0 y.max=159
-    //% w.min=1 w.max=128 h.min=1 h.max=160
-    export function drawRect(x: number, y: number, w: number, h: number, color: number): void {
-        // Optimalizace: Kreslíme pouze 4 čáry
-        drawLine(x, y, x + w - 1, y, color);        // Horní horizontální
-        drawLine(x, y + h - 1, x + w - 1, y + h - 1, color);  // Dolní horizontální
-        drawLine(x, y, x, y + h - 1, color);        // Levá vertikální
-        drawLine(x + w - 1, y, x + w - 1, y + h - 1, color);  // Pravá vertikální
-    }
-
-    /**
      * Vykreslení jednoho pixelu
      * @param x souřadnice X
      * @param y souřadnice Y
@@ -294,203 +244,6 @@ namespace ST7735 {
     }
 
     /**
-     * Vykreslení čáry
-     * @param x0 počáteční X souřadnice
-     * @param y0 počáteční Y souřadnice
-     * @param x1 koncová X souřadnice
-     * @param y1 koncová Y souřadnice
-     * @param color barva čáry
-     */
-    //% block="vykreslit čáru z x %x0 y %y0 do x %x1 y %y1 barva %color"
-    //% weight=87 group="Kreslení"
-    //% inlineInputMode=inline
-    //% x0.min=0 x0.max=127 y0.min=0 y0.max=159
-    //% x1.min=0 x1.max=127 y1.min=0 y1.max=159
-    export function drawLine(x0: number, y0: number, x1: number, y1: number, color: number): void {
-        let steep = Math.abs(y1 - y0) > Math.abs(x1 - x0)
-        if (steep) {
-            let temp = x0; x0 = y0; y0 = temp;
-            temp = x1; x1 = y1; y1 = temp;
-        }
-
-        if (x0 > x1) {
-            let temp = x0; x0 = x1; x1 = temp;
-            temp = y0; y0 = y1; y1 = temp;
-        }
-
-        let dx = x1 - x0
-        let dy = Math.abs(y1 - y0)
-        let err = dx / 2
-        let ystep = y0 < y1 ? 1 : -1
-        let y = y0
-
-        for (let x = x0; x <= x1; x++) {
-            if (steep) {
-                drawPixel(y, x, color)
-            } else {
-                drawPixel(x, y, color)
-            }
-            err -= dy
-            if (err < 0) {
-                y += ystep
-                err += dx
-            }
-        }
-    }
-
-    /**
-     * Vykreslení kruhu
-     * @param x0 X souřadnice středu
-     * @param y0 Y souřadnice středu
-     * @param r poloměr
-     * @param color barva
-     */
-    //% block="vykreslit kruh střed x %x0 y %y0 poloměr %r barva %color"
-    //% weight=84 group="Kreslení"
-    //% inlineInputMode=inline
-    //% x0.min=0 x0.max=127 y0.min=0 y0.max=159
-    //% r.min=1 r.max=80
-    export function drawCircle(x0: number, y0: number, r: number, color: number): void {
-        let f = 1 - r
-        let ddF_x = 1
-        let ddF_y = -2 * r
-        let x = 0
-        let y = r
-
-        // Optimalizace: Kreslíme jen 8 strategických bodů a využíváme symetrie
-        drawPixel(x0, y0 + r, color)
-        drawPixel(x0, y0 - r, color)
-        drawPixel(x0 + r, y0, color)
-        drawPixel(x0 - r, y0, color)
-
-        while (x < y) {
-            if (f >= 0) {
-                y--
-                ddF_y += 2
-                f += ddF_y
-            }
-            x++
-            ddF_x += 2
-            f += ddF_x
-
-            drawPixel(x0 + x, y0 + y, color)
-            drawPixel(x0 - x, y0 + y, color)
-            drawPixel(x0 + x, y0 - y, color)
-            drawPixel(x0 - x, y0 - y, color)
-            drawPixel(x0 + y, y0 + x, color)
-            drawPixel(x0 - y, y0 + x, color)
-            drawPixel(x0 + y, y0 - x, color)
-            drawPixel(x0 - y, y0 - x, color)
-        }
-    }
-
-    /**
-     * Vykreslení vyplněného kruhu
-     * @param x0 X souřadnice středu
-     * @param y0 Y souřadnice středu
-     * @param r poloměr
-     * @param color barva
-     */
-    //% block="vykreslit vyplněný kruh střed x %x0 y %y0 poloměr %r barva %color"
-    //% weight=83 group="Kreslení"
-    //% inlineInputMode=inline
-    //% x0.min=0 x0.max=127 y0.min=0 y0.max=159
-    //% r.min=1 r.max=80
-    export function fillCircle(x0: number, y0: number, r: number, color: number): void {
-        // Optimalizace: Vykreslujeme horizontální čáry
-        for (let y = -r; y <= r; y++) {
-            // Pythagorova věta pro výpočet délky horizontální čáry
-            let xLen = Math.floor(Math.sqrt(r * r - y * y))
-            drawLine(x0 - xLen, y0 + y, x0 + xLen, y0 + y, color)
-        }
-    }
-
-    /**
-     * Vykreslení trojúhelníku
-     * @param x0 X souřadnice prvního bodu
-     * @param y0 Y souřadnice prvního bodu
-     * @param x1 X souřadnice druhého bodu
-     * @param y1 Y souřadnice druhého bodu
-     * @param x2 X souřadnice třetího bodu
-     * @param y2 Y souřadnice třetího bodu
-     * @param color barva
-     */
-    //% block="vykreslit trojúhelník body x0 %x0 y0 %y0 x1 %x1 y1 %y1 x2 %x2 y2 %y2 barva %color"
-    //% weight=82 group="Kreslení"
-    //% inlineInputMode=inline
-    //% x0.min=0 x0.max=127 y0.min=0 y0.max=159
-    //% x1.min=0 x1.max=127 y1.min=0 y1.max=159
-    //% x2.min=0 x2.max=127 y2.min=0 y2.max=159
-    export function drawTriangle(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, color: number): void {
-        drawLine(x0, y0, x1, y1, color);
-        drawLine(x1, y1, x2, y2, color);
-        drawLine(x2, y2, x0, y0, color);
-    }
-
-    /**
-     * Vykreslení vyplněného trojúhelníku
-     * @param x0 X souřadnice prvního bodu
-     * @param y0 Y souřadnice prvního bodu
-     * @param x1 X souřadnice druhého bodu
-     * @param y1 Y souřadnice druhého bodu
-     * @param x2 X souřadnice třetího bodu
-     * @param y2 Y souřadnice třetího bodu
-     * @param color barva
-     */
-    //% block="vykreslit vyplněný trojúhelník body x0 %x0 y0 %y0 x1 %x1 y1 %y1 x2 %x2 y2 %y2 barva %color"
-    //% weight=81 group="Kreslení"
-    //% inlineInputMode=inline
-    //% x0.min=0 x0.max=127 y0.min=0 y0.max=159
-    //% x1.min=0 x1.max=127 y1.min=0 y1.max=159
-    //% x2.min=0 x2.max=127 y2.min=0 y2.max=159
-    export function fillTriangle(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, color: number): void {
-        // Seřazení bodů podle y-souřadnice
-        if (y0 > y1) {
-            [x0, x1] = [x1, x0];
-            [y0, y1] = [y1, y0];
-        }
-        if (y1 > y2) {
-            [x1, x2] = [x2, x1];
-            [y1, y2] = [y2, y1];
-        }
-        if (y0 > y1) {
-            [x0, x1] = [x1, x0];
-            [y0, y1] = [y1, y0];
-        }
-
-        if (y0 == y2) return; // Plochý trojúhelník
-
-        let dx01 = x1 - x0;
-        let dy01 = y1 - y0;
-        let dx02 = x2 - x0;
-        let dy02 = y2 - y0;
-        let dx12 = x2 - x1;
-        let dy12 = y2 - y1;
-        
-        // Pro každý řádek trojúhelníku
-        let sa = 0, sb = 0;
-        
-        // První část trojúhelníku
-        if (y1 == y2) last = y1; // Speciální případ
-        
-        for (let y = y0; y <= y2; y++) {
-            let a = x0 + Math.idiv(sa, dy02);
-            sa += dx02;
-            
-            let b;
-            if (y < y1) {
-                b = x0 + Math.idiv(sb, dy01);
-                sb += dx01;
-            } else {
-                b = x1 + Math.idiv((y - y1) * dx12, dy12);
-            }
-            
-            if (a > b) [a, b] = [b, a];
-            drawLine(a, y, b, y, color);
-        }
-    }
-
-    /**
      * Nastavení orientace displeje
      * @param rotation orientace displeje (0-3)
      */
@@ -498,7 +251,7 @@ namespace ST7735 {
     //% weight=95 group="Základní"
     //% rotation.min=0 rotation.max=3
     export function setRotation(rotation: number): void {
-        cmd(ST7735_MADCTL)
+        cmd(ST7735_MADCTL);
         
         // Různé MADCTL hodnoty pro různé rotace
         switch (rotation) {
@@ -599,7 +352,7 @@ namespace ST7735 {
     //% inlineInputMode=inline
     //% x.min=0 x.max=124 y.min=0 y.max=155
     //% expandableArgumentMode="toggle"
-    export function fastDrawText(text: string, x: number, y: number, color: number, bgColor?: number): void {
+    export function drawText(text: string, x: number, y: number, color: number, bgColor?: number): void {
         // Pokud bgColor není definován, použij BLACK
         const bg = (bgColor === undefined) ? BLACK : bgColor;
 
@@ -646,196 +399,5 @@ namespace ST7735 {
 
             pins.digitalWritePin(TFT_CS, 1)
         }
-    }
-
-    /**
-     * Vykreslení textu ve větší velikosti
-     * @param text text k vykreslení
-     * @param x x pozice
-     * @param y y pozice
-     * @param size velikost textu (1-3)
-     * @param color barva textu
-     * @param bgColor barva pozadí, výchozí je černá
-     */
-    //% block="vykreslit velký text %text na x %x y %y velikost %size barva %color || barva pozadí %bgColor"
-    //% weight=79 group="Text"
-    //% inlineInputMode=inline
-    //% x.min=0 x.max=124 y.min=0 y.max=155
-    //% size.min=1 size.max=3
-    //% expandableArgumentMode="toggle"
-    export function drawBigText(text: string, x: number, y: number, size: number, color: number, bgColor?: number): void {
-        // Pokud bgColor není definován, použij BLACK
-        const bg = (bgColor === undefined) ? BLACK : bgColor;
-        
-        // Zvětšování písmen pomocí duplikace pixelů
-        const textLength = text.length;
-        const charWidth = 3 * size;
-        const charHeight = 5 * size;
-        const charSpacing = size;
-        const totalWidth = textLength * (charWidth + charSpacing);
-        
-        if (x + totalWidth > WIDTH) {
-            x = WIDTH - totalWidth;
-        }
-        
-        // Vyplnění pozadí textu
-        fillRect(x, y, totalWidth, charHeight, bg);
-        
-        for (let charIdx = 0; charIdx < textLength; charIdx++) {
-            const charCode = text.charCodeAt(charIdx) - 32;
-            if (charCode < 0 || charCode >= FONT.length / 5) continue;
-            
-            const fontOffset = charCode * 5;
-            const posX = x + charIdx * (charWidth + charSpacing);
-            
-            // Vykreslení většího znaku
-            for (let row = 0; row < 5; row++) {
-                const fontRow = FONT[fontOffset + row];
-                for (let col = 0; col < 3; col++) {
-                    if (fontRow & (1 << (2 - col))) {
-                        // Kreslení bloku pro větší velikost
-                        fillRect(posX + col * size, y + row * size, size, size, color);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Ukázka rychlého textu
-     */
-    //% block="ukázka textu"
-    //% weight=60 group="Základní"
-    export function textDemo(): void {
-        fillColor(BLACK)
-
-        fastDrawText("HELLO!", 40, 10, RED)
-        fastDrawText("ULTRA", 40, 20, GREEN)
-        fastDrawText("FAST", 40, 30, BLUE)
-        fastDrawText("TEXT", 40, 40, YELLOW)
-        fastDrawText("ST7735", 40, 50, MAGENTA)
-        fastDrawText("DISPLAY", 40, 60, CYAN)
-    }
-
-    /**
-     * Ukázka barev
-     */
-    //% block="ukázka barev"
-    //% weight=50 group="Základní"
-    export function colorDemo(): void {
-        // Nejprve červená
-        fillColor(RED)
-        basic.pause(300)
-
-        // Pak zelená
-        fillColor(GREEN)
-        basic.pause(300)
-
-        // Pak modrá
-        fillColor(BLUE)
-        basic.pause(300)
-
-        // Nakonec všechny základní barvy
-        fillRect(0, 0, WIDTH, 20, BLACK)
-        fillRect(0, 20, WIDTH, 20, RED)
-        fillRect(0, 40, WIDTH, 20, GREEN)
-        fillRect(0, 60, WIDTH, 20, BLUE)
-        fillRect(0, 80, WIDTH, 20, YELLOW)
-        fillRect(0, 100, WIDTH, 20, MAGENTA)
-        fillRect(0, 120, WIDTH, 20, CYAN)
-        fillRect(0, 140, WIDTH, 20, WHITE)
-    }
-
-    /**
-     * Grafické demo s animací
-     */
-    //% block="spustit rozšířené grafické demo"
-    //% weight=40 group="Základní"
-    export function graphicsDemo(): void {
-        fillColor(BLACK);
-        
-        // 1. Demo kruhy
-        for (let i = 0; i < 5; i++) {
-            const r = Math.randomRange(5, 30);
-            const x = Math.randomRange(r, WIDTH - r);
-            const y = Math.randomRange(r, HEIGHT - r);
-            const color = color565(
-                Math.randomRange(100, 255),
-                Math.randomRange(100, 255),
-                Math.randomRange(100, 255)
-            );
-            
-            for (let j = 3; j <= r; j += 3) {
-                drawCircle(x, y, j, color);
-                basic.pause(50);
-            }
-        }
-        
-        // 2. Demo čáry
-        fillColor(BLACK);
-        for (let i = 0; i < 15; i++) {
-            const x0 = Math.randomRange(0, WIDTH);
-            const y0 = Math.randomRange(0, HEIGHT);
-            const x1 = Math.randomRange(0, WIDTH);
-            const y1 = Math.randomRange(0, HEIGHT);
-            const color = color565(
-                Math.randomRange(100, 255),
-                Math.randomRange(100, 255),
-                Math.randomRange(100, 255)
-            );
-            
-            drawLine(x0, y0, x1, y1, color);
-            basic.pause(100);
-        }
-        
-        // 3. Demo trojúhelníky
-        fillColor(BLACK);
-        for (let i = 0; i < 5; i++) {
-            const x0 = Math.randomRange(10, WIDTH - 10);
-            const y0 = Math.randomRange(10, HEIGHT - 10);
-            const x1 = Math.randomRange(10, WIDTH - 10);
-            const y1 = Math.randomRange(10, HEIGHT - 10);
-            const x2 = Math.randomRange(10, WIDTH - 10);
-            const y2 = Math.randomRange(10, HEIGHT - 10);
-            const color = color565(
-                Math.randomRange(100, 255),
-                Math.randomRange(100, 255),
-                Math.randomRange(100, 255)
-            );
-            
-            drawTriangle(x0, y0, x1, y1, x2, y2, color);
-            basic.pause(200);
-        }
-        
-        // 4. Demo obdélníky
-        fillColor(BLACK);
-        for (let i = 0; i < 5; i++) {
-            const x = Math.randomRange(10, WIDTH - 50);
-            const y = Math.randomRange(10, HEIGHT - 50);
-            const w = Math.randomRange(20, 50);
-            const h = Math.randomRange(20, 50);
-            const color = color565(
-                Math.randomRange(100, 255),
-                Math.randomRange(100, 255),
-                Math.randomRange(100, 255)
-            );
-            
-            drawRect(x, y, w, h, color);
-            basic.pause(200);
-        }
-        
-        // 5. Demo text s velikostmi
-        fillColor(BLACK);
-        drawBigText("MICRO", 20, 40, 2, RED);
-        drawBigText("BIT", 40, 60, 3, BLUE);
-        drawBigText("ST7735", 20, 90, 2, GREEN);
-        drawBigText("DISPLEJ", 30, 110, 2, YELLOW);
-        
-        // 6. Demo sloupcový graf
-        basic.pause(1000);
-        fillColor(BLACK);
-        
-        const values = [5, 10, 15, 7, 12, 8, 3, 9];
-        drawBarGraph(values, 10, 140, 100, 100, MAGENTA);
     }
 }
