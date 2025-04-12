@@ -24,14 +24,16 @@ namespace ST7735 {
     // Globální proměnná pro uchování aktuální rotace displeje
     let currentRotation = 0;
 
-    // Definice barev (jako funkce, aby nedocházelo k chybám)
+    // Oprava barevného pořadí - ST7735 používá BGR formát místo RGB
+    // Proto se červená a modrá jeví opačně
+
     //% block="černá"
     //% group="Barvy" weight=90
     export function BLACK(): number { return 0x0000; }
 
-    //% block="červená"
+    //% block="červená" 
     //% group="Barvy" weight=89
-    export function RED(): number { return 0xF800; }
+    export function RED(): number { return 0x001F; } // Opraveno: 0x001F pro červenou v BGR
 
     //% block="zelená"
     //% group="Barvy" weight=88
@@ -39,7 +41,7 @@ namespace ST7735 {
 
     //% block="modrá"
     //% group="Barvy" weight=87
-    export function BLUE(): number { return 0x001F; }
+    export function BLUE(): number { return 0xF800; } // Opraveno: 0xF800 pro modrou v BGR
 
     //% block="bílá"
     //% group="Barvy" weight=86
@@ -47,15 +49,15 @@ namespace ST7735 {
 
     //% block="žlutá"
     //% group="Barvy" weight=85
-    export function YELLOW(): number { return 0xFFE0; }
+    export function YELLOW(): number { return 0x07FF; } // Opraveno: červená + zelená
 
     //% block="purpurová"
     //% group="Barvy" weight=84
-    export function MAGENTA(): number { return 0xF81F; }
+    export function MAGENTA(): number { return 0xF81F; } // Opraveno: modrá + červená
 
     //% block="azurová"
     //% group="Barvy" weight=83
-    export function CYAN(): number { return 0x07FF; }
+    export function CYAN(): number { return 0xFFE0; } // Opraveno: modrá + zelená
 
     /**
      * Vytvoření RGB barvy
@@ -68,8 +70,8 @@ namespace ST7735 {
     //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
     //% inlineInputMode=inline
     export function color565(r: number, g: number, b: number): number {
-        // Převod 24-bit RGB (8-8-8) na 16-bit RGB565 formát
-        return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
+        // Oprava - Převod 24-bit RGB (8-8-8) na 16-bit BGR565 formát pro ST7735
+        return ((b & 0xF8) << 8) | ((g & 0xFC) << 3) | (r >> 3);
     }
 
     // Rozměry displeje
@@ -483,210 +485,51 @@ namespace ST7735 {
     ];
 
     /**
-     * Vykreslení textu
+     * Univerzální funkce pro vykreslení textu
      * @param text text k vykreslení
      * @param x x pozice
      * @param y y pozice
      * @param color barva textu
+     * @param size velikost textu (1-4)
      * @param rotation orientace textu (0-3)
-     * @param bgColor barva pozadí, výchozí je černá
+     * @param bgColor barva pozadí
+     * @param r červená složka (0-255)
+     * @param g zelená složka (0-255)
+     * @param b modrá složka (0-255)
      */
-    //% block="vykreslit text %text na x %x y %y barva %color orientace %rotation || barva pozadí %bgColor"
+    //% block="text %text na x %x y %y || velikost %size orientace %rotation barva %color pozadí %bgColor RGB r %r g %g b %b"
     //% weight=85 group="Text"
     //% inlineInputMode=inline
     //% x.min=0 x.max=120 y.min=0 y.max=150
+    //% size.min=1 size.max=4 size.defl=1
     //% rotation.min=0 rotation.max=3 rotation.defl=0
+    //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
     //% expandableArgumentMode="toggle"
-    export function drawText(text: string, x: number, y: number, color: number, rotation: number = 0, bgColor?: number): void {
-        // Pokud bgColor není definován, použij BLACK
-        const bg = (bgColor === undefined) ? BLACK() : bgColor;
-        
-        // Omezte rotation na platné hodnoty 0-3
-        rotation = Math.max(0, Math.min(3, rotation));
-    
-        const textLength = text.length;
-        const charWidth = 8;
-        const charHeight = 10;
-        const charSpacing = 2; // Mezera mezi znaky
-        const totalCharWidth = charWidth + charSpacing;
-        
-        // Proměnné pro pozici a směr
-        let startX = x;
-        let startY = y;
-        let deltaX = 0;
-        let deltaY = 0;
-        
-        // Nastavení směru podle orientace textu
-        switch (rotation) {
-            case 0: // Normální - zleva doprava
-                deltaX = totalCharWidth;
-                deltaY = 0;
-                
-                // Kontrola, zda text nepřesáhne okraj displeje
-                if (startX + textLength * totalCharWidth > WIDTH) {
-                    startX = Math.max(0, WIDTH - textLength * totalCharWidth);
-                }
-                break;
-                
-            case 1: // Otočený o 90° - shora dolů
-                deltaX = 0;
-                deltaY = totalCharWidth;
-                
-                // Kontrola, zda text nepřesáhne okraj displeje
-                if (startY + textLength * totalCharWidth > HEIGHT) {
-                    startY = Math.max(0, HEIGHT - textLength * totalCharWidth);
-                }
-                break;
-                
-            case 2: // Otočený o 180° - zprava doleva
-                deltaX = -totalCharWidth;
-                deltaY = 0;
-                
-                // Posun startovní pozice doleva
-                startX += (textLength - 1) * totalCharWidth;
-                
-                // Kontrola, zda text nepřesáhne okraj displeje
-                if (startX >= WIDTH) {
-                    startX = WIDTH - 1;
-                }
-                if (startX - (textLength - 1) * totalCharWidth < 0) {
-                    startX = (textLength - 1) * totalCharWidth;
-                }
-                break;
-                
-            case 3: // Otočený o 270° - zdola nahoru
-                deltaX = 0;
-                deltaY = -totalCharWidth;
-                
-                // Posun startovní pozice nahoru
-                startY += (textLength - 1) * totalCharWidth;
-                
-                // Kontrola, zda text nepřesáhne okraj displeje
-                if (startY >= HEIGHT) {
-                    startY = HEIGHT - 1;
-                }
-                if (startY - (textLength - 1) * totalCharWidth < 0) {
-                    startY = (textLength - 1) * totalCharWidth;
-                }
-                break;
+    export function drawText(
+        text: string, 
+        x: number, 
+        y: number, 
+        size: number = 1, 
+        rotation: number = 0, 
+        color: number = WHITE(), 
+        bgColor: number = BLACK(),
+        r?: number,
+        g?: number,
+        b?: number
+    ): void {
+        // Pokud jsou zadány RGB hodnoty, použij je pro barvu textu
+        if (r !== undefined && g !== undefined && b !== undefined) {
+            color = color565(r, g, b);
         }
-        
-        // Vyplnění pozadí pro text
-        if (bg !== color) {
-            let bgWidth = 0;
-            let bgHeight = 0;
-            let bgX = 0;
-            let bgY = 0;
-            
-            if (rotation === 0) {
-                bgWidth = textLength * totalCharWidth - charSpacing;
-                bgHeight = charHeight;
-                bgX = startX;
-                bgY = startY;
-            } else if (rotation === 1) {
-                bgWidth = charHeight;
-                bgHeight = textLength * totalCharWidth - charSpacing;
-                bgX = startX;
-                bgY = startY;
-            } else if (rotation === 2) {
-                bgWidth = textLength * totalCharWidth - charSpacing;
-                bgHeight = charHeight;
-                bgX = startX - (textLength - 1) * totalCharWidth;
-                bgY = startY;
-            } else if (rotation === 3) {
-                bgWidth = charHeight;
-                bgHeight = textLength * totalCharWidth - charSpacing;
-                bgX = startX;
-                bgY = startY - (textLength - 1) * totalCharWidth;
-            }
-            
-            fillRect(bgX, bgY, bgWidth, bgHeight, bg);
-        }
-        
-        // Vykreslení textu
-        let curX = startX;
-        let curY = startY;
-        
-        for (let i = 0; i < textLength; i++) {
-            const charCode = text.charCodeAt(i) - 32;  // ASCII 32 = mezera
-            if (charCode < 0 || charCode >= FONT_8X10.length) continue;
-            
-            const fontData = FONT_8X10[charCode];
-            
-            // Vykreslení znaku pixel po pixelu
-            for (let row = 0; row < 10; row++) {
-                const rowData = fontData[row];
-                
-                for (let col = 0; col < 8; col++) {
-                    const isPixelOn = (rowData & (1 << (7 - col))) !== 0;
-                    
-                    if (isPixelOn) {
-                        // Výpočet souřadnic podle orientace
-                        let pixelX = 0;
-                        let pixelY = 0;
-                        
-                        switch (rotation) {
-                            case 0:
-                                pixelX = curX + col;
-                                pixelY = curY + row;
-                                break;
-                            case 1:
-                                pixelX = curX + (9 - row);
-                                pixelY = curY + col;
-                                break;
-                            case 2:
-                                pixelX = curX - col;
-                                pixelY = curY + (9 - row);
-                                break;
-                            case 3:
-                                pixelX = curX - (9 - row);
-                                pixelY = curY - col;
-                                break;
-                        }
-                        
-                        // Kreslení pixelu, pokud je v rozsahu displeje
-                        if (pixelX >= 0 && pixelX < WIDTH && pixelY >= 0 && pixelY < HEIGHT) {
-                            drawPixel(pixelX, pixelY, color);
-                        }
-                    }
-                }
-            }
-            
-            // Posun na další znak
-            curX += deltaX;
-            curY += deltaY;
-        }
-    }
-    
-    /**
-     * Vykreslení velkého textu
-     * @param text text k vykreslení
-     * @param x x pozice
-     * @param y y pozice
-     * @param color barva textu
-     * @param scale měřítko textu (1-4)
-     * @param rotation orientace textu (0-3)
-     * @param bgColor barva pozadí, výchozí je černá
-     */
-    //% block="vykreslit velký text %text na x %x y %y barva %color měřítko %scale orientace %rotation || barva pozadí %bgColor"
-    //% weight=84 group="Text"
-    //% inlineInputMode=inline
-    //% x.min=0 x.max=120 y.min=0 y.max=150
-    //% scale.min=1 scale.max=4 scale.defl=2
-    //% rotation.min=0 rotation.max=3 rotation.defl=0
-    //% expandableArgumentMode="toggle"
-    export function drawBigText(text: string, x: number, y: number, color: number, scale: number = 2, rotation: number = 0, bgColor?: number): void {
-        // Pokud bgColor není definován, použij BLACK
-        const bg = (bgColor === undefined) ? BLACK() : bgColor;
         
         // Omezte na platné hodnoty
-        scale = Math.max(1, Math.min(4, scale));
+        size = Math.max(1, Math.min(4, size));
         rotation = Math.max(0, Math.min(3, rotation));
-    
+
         const textLength = text.length;
-        const charWidth = 8 * scale;
-        const charHeight = 10 * scale;
-        const charSpacing = 2 * scale; // Mezera mezi znaky
+        const charWidth = 8 * size;
+        const charHeight = 10 * size;
+        const charSpacing = 2 * size; // Mezera mezi znaky
         const totalCharWidth = charWidth + charSpacing;
         
         // Proměnné pro pozici a směr
@@ -751,7 +594,7 @@ namespace ST7735 {
         }
         
         // Vyplnění pozadí pro text
-        if (bg !== color) {
+        if (bgColor !== color) {
             let bgWidth = 0;
             let bgHeight = 0;
             let bgX = 0;
@@ -779,7 +622,7 @@ namespace ST7735 {
                 bgY = startY - (textLength - 1) * totalCharWidth;
             }
             
-            fillRect(bgX, bgY, bgWidth, bgHeight, bg);
+            fillRect(bgX, bgY, bgWidth, bgHeight, bgColor);
         }
         
         // Vykreslení textu
@@ -806,26 +649,26 @@ namespace ST7735 {
                         
                         switch (rotation) {
                             case 0:
-                                baseX = curX + col * scale;
-                                baseY = curY + row * scale;
+                                baseX = curX + col * size;
+                                baseY = curY + row * size;
                                 break;
                             case 1:
-                                baseX = curX + (9 - row) * scale;
-                                baseY = curY + col * scale;
+                                baseX = curX + (9 - row) * size;
+                                baseY = curY + col * size;
                                 break;
                             case 2:
-                                baseX = curX - col * scale;
-                                baseY = curY + (9 - row) * scale;
+                                baseX = curX - col * size;
+                                baseY = curY + (9 - row) * size;
                                 break;
                             case 3:
-                                baseX = curX - (9 - row) * scale; 
-                                baseY = curY - col * scale;
+                                baseX = curX - (9 - row) * size; 
+                                baseY = curY - col * size;
                                 break;
                         }
                         
-                        // Vykreslení čtverce o velikosti scale×scale
-                        for (let dy = 0; dy < scale; dy++) {
-                            for (let dx = 0; dx < scale; dx++) {
+                        // Vykreslení čtverce o velikosti size×size
+                        for (let dy = 0; dy < size; dy++) {
+                            for (let dx = 0; dx < size; dx++) {
                                 // Výpočet finální pozice pixelu
                                 let pixelX = baseX;
                                 let pixelY = baseY;
@@ -858,5 +701,32 @@ namespace ST7735 {
             curX += deltaX;
             curY += deltaY;
         }
+    }
+
+    /**
+     * Vykreslení velkého textu - zkratka pro drawText s velikostí 2
+     * @param text text k vykreslení
+     * @param x x pozice
+     * @param y y pozice
+     * @param color barva textu
+     * @param rotation orientace textu (0-3)
+     * @param bgColor barva pozadí
+     */
+    //% block="velký text %text na x %x y %y || orientace %rotation barva %color pozadí %bgColor"
+    //% weight=84 group="Text"
+    //% inlineInputMode=inline
+    //% x.min=0 x.max=120 y.min=0 y.max=150
+    //% rotation.min=0 rotation.max=3 rotation.defl=0
+    //% expandableArgumentMode="toggle"
+    export function drawBigText(
+        text: string, 
+        x: number, 
+        y: number, 
+        rotation: number = 0,
+        color: number = WHITE(), 
+        bgColor: number = BLACK()
+    ): void {
+        // Použití univerzální funkce s velikostí 2
+        drawText(text, x, y, 2, rotation, color, bgColor);
     }
 }
