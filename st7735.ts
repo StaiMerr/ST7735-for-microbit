@@ -214,7 +214,7 @@ namespace ST7735 {
     //% weight=85 group="Kreslení"
     //% inlineInputMode=inline
     //% x.min=0 x.max=127 y.min=0 y.max=159
-    //% w.min=1 w.max=128 h.min=1 h.max=160
+    //% w.min=1 w.max=128 h.min=1 w.max=160
     export function fillRect(x: number, y: number, w: number, h: number, color: number): void {
         if (x >= WIDTH || y >= HEIGHT) return
         if (x + w > WIDTH) w = WIDTH - x
@@ -287,137 +287,199 @@ namespace ST7735 {
         }
     }
 
-    // Font 6x8 pixelů (každý znak definován jako 8 bajtů - jeden pro každý řádek)
-    // První bajt je horní řádek, např. 0x3C znamená "00111100"
-    const FONT_6X8: number[][] = [
+    // Font 8x10 pixelů (každý znak definován jako 10 bajtů - jeden pro každý řádek)
+    // První bajt je horní řádek
+    const FONT_8X10: number[][] = [
         // Mezera (32)
-        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
         // ! (33)
-        [0x00, 0x00, 0x06, 0x5F, 0x5F, 0x06, 0x00, 0x00],
+        [0x00, 0x00, 0x18, 0x3C, 0x3C, 0x3C, 0x18, 0x00, 0x18, 0x00],
         // " (34)
-        [0x00, 0x03, 0x03, 0x00, 0x03, 0x03, 0x00, 0x00],
+        [0x00, 0x66, 0x66, 0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
         // # (35)
-        [0x14, 0x7F, 0x7F, 0x14, 0x7F, 0x7F, 0x14, 0x00],
+        [0x00, 0x00, 0x6C, 0x6C, 0xFE, 0x6C, 0xFE, 0x6C, 0x6C, 0x00],
         // $ (36)
-        [0x24, 0x2E, 0x6B, 0x6B, 0x3A, 0x12, 0x00, 0x00],
+        [0x00, 0x10, 0x7C, 0xD6, 0xD0, 0x7C, 0x16, 0xD6, 0x7C, 0x10],
         // % (37)
-        [0x46, 0x66, 0x30, 0x18, 0x0C, 0x66, 0x62, 0x00],
+        [0x00, 0x00, 0xC6, 0xC6, 0x0C, 0x18, 0x30, 0x66, 0x66, 0x00],
         // & (38)
-        [0x30, 0x7A, 0x4F, 0x5D, 0x37, 0x7A, 0x48, 0x00],
+        [0x00, 0x00, 0x38, 0x6C, 0x38, 0x76, 0xDC, 0xCC, 0x76, 0x00],
         // ' (39)
-        [0x04, 0x07, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00],
+        [0x00, 0x18, 0x18, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
         // ( (40)
-        [0x00, 0x1C, 0x3E, 0x63, 0x41, 0x00, 0x00, 0x00],
+        [0x00, 0x00, 0x0C, 0x18, 0x30, 0x30, 0x30, 0x18, 0x0C, 0x00],
         // ) (41)
-        [0x00, 0x41, 0x63, 0x3E, 0x1C, 0x00, 0x00, 0x00],
+        [0x00, 0x00, 0x30, 0x18, 0x0C, 0x0C, 0x0C, 0x18, 0x30, 0x00],
         // * (42)
-        [0x08, 0x2A, 0x3E, 0x1C, 0x1C, 0x3E, 0x2A, 0x08],
+        [0x00, 0x00, 0x00, 0x66, 0x3C, 0xFF, 0x3C, 0x66, 0x00, 0x00],
         // + (43)
-        [0x08, 0x08, 0x3E, 0x3E, 0x08, 0x08, 0x00, 0x00],
+        [0x00, 0x00, 0x00, 0x18, 0x18, 0x7E, 0x18, 0x18, 0x00, 0x00],
         // , (44)
-        [0x00, 0x80, 0xE0, 0x60, 0x00, 0x00, 0x00, 0x00],
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x30],
         // - (45)
-        [0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x00, 0x00],
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x7E, 0x00, 0x00, 0x00, 0x00],
         // . (46)
-        [0x00, 0x00, 0x60, 0x60, 0x00, 0x00, 0x00, 0x00],
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x00],
         // / (47)
-        [0x60, 0x30, 0x18, 0x0C, 0x06, 0x03, 0x01, 0x00],
+        [0x00, 0x00, 0x06, 0x0C, 0x18, 0x30, 0x60, 0xC0, 0x80, 0x00],
         // 0 (48)
-        [0x3E, 0x7F, 0x71, 0x59, 0x4D, 0x7F, 0x3E, 0x00],
+        [0x00, 0x00, 0x7C, 0xC6, 0xCE, 0xDE, 0xF6, 0xE6, 0x7C, 0x00],
         // 1 (49)
-        [0x40, 0x42, 0x7F, 0x7F, 0x40, 0x40, 0x00, 0x00],
+        [0x00, 0x00, 0x18, 0x38, 0x78, 0x18, 0x18, 0x18, 0x7E, 0x00],
         // 2 (50)
-        [0x62, 0x73, 0x59, 0x49, 0x6F, 0x66, 0x00, 0x00],
+        [0x00, 0x00, 0x7C, 0xC6, 0x06, 0x0C, 0x18, 0x30, 0xFE, 0x00],
         // 3 (51)
-        [0x22, 0x63, 0x49, 0x49, 0x7F, 0x36, 0x00, 0x00],
+        [0x00, 0x00, 0x7C, 0xC6, 0x06, 0x3C, 0x06, 0xC6, 0x7C, 0x00],
         // 4 (52)
-        [0x18, 0x1C, 0x16, 0x53, 0x7F, 0x7F, 0x50, 0x00],
+        [0x00, 0x00, 0x0C, 0x1C, 0x3C, 0x6C, 0xCC, 0xFE, 0x0C, 0x00],
         // 5 (53)
-        [0x27, 0x67, 0x45, 0x45, 0x7D, 0x39, 0x00, 0x00],
+        [0x00, 0x00, 0xFE, 0xC0, 0xC0, 0xFC, 0x06, 0xC6, 0x7C, 0x00],
         // 6 (54)
-        [0x3C, 0x7E, 0x4B, 0x49, 0x79, 0x30, 0x00, 0x00],
+        [0x00, 0x00, 0x3C, 0x60, 0xC0, 0xFC, 0xC6, 0xC6, 0x7C, 0x00],
         // 7 (55)
-        [0x03, 0x03, 0x71, 0x79, 0x0F, 0x07, 0x00, 0x00],
+        [0x00, 0x00, 0xFE, 0x06, 0x0C, 0x18, 0x30, 0x30, 0x30, 0x00],
         // 8 (56)
-        [0x36, 0x7F, 0x49, 0x49, 0x7F, 0x36, 0x00, 0x00],
+        [0x00, 0x00, 0x7C, 0xC6, 0xC6, 0x7C, 0xC6, 0xC6, 0x7C, 0x00],
         // 9 (57)
-        [0x06, 0x4F, 0x49, 0x69, 0x3F, 0x1E, 0x00, 0x00],
+        [0x00, 0x00, 0x7C, 0xC6, 0xC6, 0x7E, 0x06, 0x0C, 0x78, 0x00],
         // : (58)
-        [0x00, 0x00, 0x66, 0x66, 0x00, 0x00, 0x00, 0x00],
+        [0x00, 0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x18, 0x18, 0x00],
         // ; (59)
-        [0x00, 0x80, 0xE6, 0x66, 0x00, 0x00, 0x00, 0x00],
+        [0x00, 0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x18, 0x18, 0x30],
         // < (60)
-        [0x08, 0x1C, 0x36, 0x63, 0x41, 0x00, 0x00, 0x00],
+        [0x00, 0x00, 0x06, 0x0C, 0x18, 0x30, 0x18, 0x0C, 0x06, 0x00],
         // = (61)
-        [0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x00, 0x00],
+        [0x00, 0x00, 0x00, 0x00, 0x7E, 0x00, 0x7E, 0x00, 0x00, 0x00],
         // > (62)
-        [0x00, 0x41, 0x63, 0x36, 0x1C, 0x08, 0x00, 0x00],
+        [0x00, 0x00, 0x60, 0x30, 0x18, 0x0C, 0x18, 0x30, 0x60, 0x00],
         // ? (63)
-        [0x02, 0x03, 0x51, 0x59, 0x0F, 0x06, 0x00, 0x00],
+        [0x00, 0x00, 0x7C, 0xC6, 0x0C, 0x18, 0x18, 0x00, 0x18, 0x00],
         // @ (64)
-        [0x3E, 0x7F, 0x41, 0x5D, 0x5D, 0x1F, 0x1E, 0x00],
+        [0x00, 0x00, 0x7C, 0xC6, 0xDE, 0xDE, 0xDE, 0xC0, 0x7C, 0x00],
         // A (65)
-        [0x7C, 0x7E, 0x13, 0x13, 0x7E, 0x7C, 0x00, 0x00],
+        [0x00, 0x00, 0x38, 0x6C, 0xC6, 0xC6, 0xFE, 0xC6, 0xC6, 0x00],
         // B (66)
-        [0x41, 0x7F, 0x7F, 0x49, 0x49, 0x7F, 0x36, 0x00],
+        [0x00, 0x00, 0xFC, 0x66, 0x66, 0x7C, 0x66, 0x66, 0xFC, 0x00],
         // C (67)
-        [0x1C, 0x3E, 0x63, 0x41, 0x41, 0x63, 0x22, 0x00],
+        [0x00, 0x00, 0x3C, 0x66, 0xC0, 0xC0, 0xC0, 0x66, 0x3C, 0x00],
         // D (68)
-        [0x41, 0x7F, 0x7F, 0x41, 0x63, 0x3E, 0x1C, 0x00],
+        [0x00, 0x00, 0xF8, 0x6C, 0x66, 0x66, 0x66, 0x6C, 0xF8, 0x00],
         // E (69)
-        [0x41, 0x7F, 0x7F, 0x49, 0x5D, 0x41, 0x63, 0x00],
+        [0x00, 0x00, 0xFE, 0x62, 0x68, 0x78, 0x68, 0x62, 0xFE, 0x00],
         // F (70)
-        [0x41, 0x7F, 0x7F, 0x49, 0x1D, 0x01, 0x03, 0x00],
+        [0x00, 0x00, 0xFE, 0x62, 0x68, 0x78, 0x68, 0x60, 0xF0, 0x00],
         // G (71)
-        [0x1C, 0x3E, 0x63, 0x41, 0x51, 0x73, 0x72, 0x00],
+        [0x00, 0x00, 0x3C, 0x66, 0xC0, 0xC0, 0xCE, 0x66, 0x3E, 0x00],
         // H (72)
-        [0x7F, 0x7F, 0x08, 0x08, 0x7F, 0x7F, 0x00, 0x00],
+        [0x00, 0x00, 0xC6, 0xC6, 0xC6, 0xFE, 0xC6, 0xC6, 0xC6, 0x00],
         // I (73)
-        [0x00, 0x41, 0x7F, 0x7F, 0x41, 0x00, 0x00, 0x00],
+        [0x00, 0x00, 0x3C, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, 0x00],
         // J (74)
-        [0x30, 0x70, 0x40, 0x41, 0x7F, 0x3F, 0x01, 0x00],
+        [0x00, 0x00, 0x1E, 0x0C, 0x0C, 0x0C, 0xCC, 0xCC, 0x78, 0x00],
         // K (75)
-        [0x41, 0x7F, 0x7F, 0x08, 0x1C, 0x77, 0x63, 0x00],
+        [0x00, 0x00, 0xE6, 0x66, 0x6C, 0x78, 0x6C, 0x66, 0xE6, 0x00],
         // L (76)
-        [0x41, 0x7F, 0x7F, 0x41, 0x40, 0x60, 0x70, 0x00],
+        [0x00, 0x00, 0xF0, 0x60, 0x60, 0x60, 0x60, 0x62, 0xFE, 0x00],
         // M (77)
-        [0x7F, 0x7F, 0x0E, 0x1C, 0x0E, 0x7F, 0x7F, 0x00],
+        [0x00, 0x00, 0xC6, 0xEE, 0xFE, 0xD6, 0xC6, 0xC6, 0xC6, 0x00],
         // N (78)
-        [0x7F, 0x7F, 0x06, 0x0C, 0x18, 0x7F, 0x7F, 0x00],
+        [0x00, 0x00, 0xC6, 0xE6, 0xF6, 0xDE, 0xCE, 0xC6, 0xC6, 0x00],
         // O (79)
-        [0x1C, 0x3E, 0x63, 0x41, 0x63, 0x3E, 0x1C, 0x00],
+        [0x00, 0x00, 0x7C, 0xC6, 0xC6, 0xC6, 0xC6, 0xC6, 0x7C, 0x00],
         // P (80)
-        [0x41, 0x7F, 0x7F, 0x49, 0x09, 0x0F, 0x06, 0x00],
+        [0x00, 0x00, 0xFC, 0x66, 0x66, 0x7C, 0x60, 0x60, 0xF0, 0x00],
         // Q (81)
-        [0x1E, 0x3F, 0x21, 0x71, 0x7F, 0x5E, 0x00, 0x00],
+        [0x00, 0x00, 0x7C, 0xC6, 0xC6, 0xC6, 0xD6, 0xDE, 0x7C, 0x06],
         // R (82)
-        [0x41, 0x7F, 0x7F, 0x09, 0x19, 0x7F, 0x66, 0x00],
+        [0x00, 0x00, 0xFC, 0x66, 0x66, 0x7C, 0x6C, 0x66, 0xE6, 0x00],
         // S (83)
-        [0x26, 0x6F, 0x4D, 0x59, 0x73, 0x32, 0x00, 0x00],
+        [0x00, 0x00, 0x7C, 0xC6, 0x60, 0x38, 0x0C, 0xC6, 0x7C, 0x00],
         // T (84)
-        [0x03, 0x41, 0x7F, 0x7F, 0x41, 0x03, 0x00, 0x00],
+        [0x00, 0x00, 0x7E, 0x5A, 0x18, 0x18, 0x18, 0x18, 0x3C, 0x00],
         // U (85)
-        [0x7F, 0x7F, 0x40, 0x40, 0x7F, 0x7F, 0x00, 0x00],
+        [0x00, 0x00, 0xC6, 0xC6, 0xC6, 0xC6, 0xC6, 0xC6, 0x7C, 0x00],
         // V (86)
-        [0x1F, 0x3F, 0x60, 0x60, 0x3F, 0x1F, 0x00, 0x00],
+        [0x00, 0x00, 0xC6, 0xC6, 0xC6, 0xC6, 0x6C, 0x38, 0x10, 0x00],
         // W (87)
-        [0x7F, 0x7F, 0x30, 0x18, 0x30, 0x7F, 0x7F, 0x00],
+        [0x00, 0x00, 0xC6, 0xC6, 0xC6, 0xD6, 0xFE, 0xEE, 0xC6, 0x00],
         // X (88)
-        [0x43, 0x67, 0x3C, 0x18, 0x3C, 0x67, 0x43, 0x00],
+        [0x00, 0x00, 0xC6, 0xC6, 0x6C, 0x38, 0x6C, 0xC6, 0xC6, 0x00],
         // Y (89)
-        [0x07, 0x4F, 0x78, 0x78, 0x4F, 0x07, 0x00, 0x00],
+        [0x00, 0x00, 0xC6, 0xC6, 0x6C, 0x38, 0x18, 0x18, 0x3C, 0x00],
         // Z (90)
-        [0x47, 0x63, 0x71, 0x59, 0x4D, 0x67, 0x73, 0x00],
+        [0x00, 0x00, 0xFE, 0xC6, 0x8C, 0x18, 0x32, 0x66, 0xFE, 0x00],
         // [ (91)
-        [0x00, 0x7F, 0x7F, 0x41, 0x41, 0x00, 0x00, 0x00],
+        [0x00, 0x00, 0x3C, 0x30, 0x30, 0x30, 0x30, 0x30, 0x3C, 0x00],
         // \ (92)
-        [0x01, 0x03, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x00],
+        [0x00, 0x00, 0x80, 0xC0, 0x60, 0x30, 0x18, 0x0C, 0x06, 0x00],
         // ] (93)
-        [0x00, 0x41, 0x41, 0x7F, 0x7F, 0x00, 0x00, 0x00],
+        [0x00, 0x00, 0x3C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x3C, 0x00],
         // ^ (94)
-        [0x08, 0x0C, 0x06, 0x03, 0x06, 0x0C, 0x08, 0x00],
+        [0x10, 0x38, 0x6C, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
         // _ (95)
-        [0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80]
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF],
+        // ` (96)
+        [0x30, 0x18, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+        // a (97)
+        [0x00, 0x00, 0x00, 0x00, 0x78, 0x0C, 0x7C, 0xCC, 0x76, 0x00],
+        // b (98)
+        [0x00, 0x00, 0xE0, 0x60, 0x7C, 0x66, 0x66, 0x66, 0xDC, 0x00],
+        // c (99)
+        [0x00, 0x00, 0x00, 0x00, 0x7C, 0xC6, 0xC0, 0xC6, 0x7C, 0x00],
+        // d (100)
+        [0x00, 0x00, 0x1C, 0x0C, 0x7C, 0xCC, 0xCC, 0xCC, 0x76, 0x00],
+        // e (101)
+        [0x00, 0x00, 0x00, 0x00, 0x7C, 0xC6, 0xFE, 0xC0, 0x7C, 0x00],
+        // f (102)
+        [0x00, 0x00, 0x3C, 0x66, 0x60, 0xF8, 0x60, 0x60, 0xF0, 0x00],
+        // g (103)
+        [0x00, 0x00, 0x00, 0x00, 0x76, 0xCC, 0xCC, 0x7C, 0x0C, 0xF8],
+        // h (104)
+        [0x00, 0x00, 0xE0, 0x60, 0x6C, 0x76, 0x66, 0x66, 0xE6, 0x00],
+        // i (105)
+        [0x00, 0x00, 0x18, 0x00, 0x38, 0x18, 0x18, 0x18, 0x3C, 0x00],
+        // j (106)
+        [0x00, 0x00, 0x06, 0x00, 0x06, 0x06, 0x06, 0x66, 0x66, 0x3C],
+        // k (107)
+        [0x00, 0x00, 0xE0, 0x60, 0x66, 0x6C, 0x78, 0x6C, 0xE6, 0x00],
+        // l (108)
+        [0x00, 0x00, 0x38, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, 0x00],
+        // m (109)
+        [0x00, 0x00, 0x00, 0x00, 0xEC, 0xFE, 0xD6, 0xD6, 0xD6, 0x00],
+        // n (110)
+        [0x00, 0x00, 0x00, 0x00, 0xDC, 0x66, 0x66, 0x66, 0x66, 0x00],
+        // o (111)
+        [0x00, 0x00, 0x00, 0x00, 0x7C, 0xC6, 0xC6, 0xC6, 0x7C, 0x00],
+        // p (112)
+        [0x00, 0x00, 0x00, 0x00, 0xDC, 0x66, 0x66, 0x7C, 0x60, 0xF0],
+        // q (113)
+        [0x00, 0x00, 0x00, 0x00, 0x76, 0xCC, 0xCC, 0x7C, 0x0C, 0x1E],
+        // r (114)
+        [0x00, 0x00, 0x00, 0x00, 0xDC, 0x76, 0x60, 0x60, 0xF0, 0x00],
+        // s (115)
+        [0x00, 0x00, 0x00, 0x00, 0x7C, 0xC0, 0x7C, 0x06, 0xFC, 0x00],
+        // t (116)
+        [0x00, 0x00, 0x30, 0x30, 0xFC, 0x30, 0x30, 0x36, 0x1C, 0x00],
+        // u (117)
+        [0x00, 0x00, 0x00, 0x00, 0xCC, 0xCC, 0xCC, 0xCC, 0x76, 0x00],
+        // v (118)
+        [0x00, 0x00, 0x00, 0x00, 0x66, 0x66, 0x66, 0x3C, 0x18, 0x00],
+        // w (119)
+        [0x00, 0x00, 0x00, 0x00, 0xC6, 0xD6, 0xD6, 0xFE, 0x6C, 0x00],
+        // x (120)
+        [0x00, 0x00, 0x00, 0x00, 0xC6, 0x6C, 0x38, 0x6C, 0xC6, 0x00],
+        // y (121)
+        [0x00, 0x00, 0x00, 0x00, 0xC6, 0xC6, 0xC6, 0x7E, 0x06, 0xFC],
+        // z (122)
+        [0x00, 0x00, 0x00, 0x00, 0xFE, 0x8C, 0x18, 0x32, 0xFE, 0x00],
+        // { (123)
+        [0x00, 0x00, 0x0E, 0x18, 0x18, 0x70, 0x18, 0x18, 0x0E, 0x00],
+        // | (124)
+        [0x00, 0x00, 0x18, 0x18, 0x18, 0x00, 0x18, 0x18, 0x18, 0x00],
+        // } (125)
+        [0x00, 0x00, 0x70, 0x18, 0x18, 0x0E, 0x18, 0x18, 0x70, 0x00],
+        // ~ (126)
+        [0x00, 0x00, 0x76, 0xDC, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
     ];
 
     /**
@@ -431,104 +493,121 @@ namespace ST7735 {
     //% block="vykreslit text %text na x %x y %y barva %color || barva pozadí %bgColor"
     //% weight=85 group="Text"
     //% inlineInputMode=inline
-    //% x.min=0 x.max=122 y.min=0 y.max=152
+    //% x.min=0 x.max=120 y.min=0 y.max=150
     //% expandableArgumentMode="toggle"
     export function drawText(text: string, x: number, y: number, color: number, bgColor?: number): void {
         // Pokud bgColor není definován, použij BLACK
         const bg = (bgColor === undefined) ? BLACK() : bgColor;
 
         const textLength = text.length;
-        const charWidth = 6;
-        const charHeight = 8;
+        const charWidth = 8;
+        const charHeight = 10;
+        const charSpacing = 2; // Zvětšeno pro lepší čitelnost
+        const totalCharWidth = charWidth + charSpacing;
         
         // Nastavení směru vykreslování podle rotace
         let posX = x;
         let posY = y;
         let dX = 0;
         let dY = 0;
+        let totalWidth = 0;
+        let totalHeight = 0;
         
         // Určení směru vykreslování podle rotace
         switch (currentRotation) {
             case 0: // 0 stupňů - normální zleva doprava
-                dX = charWidth;
+                dX = totalCharWidth;
                 dY = 0;
+                totalWidth = textLength * totalCharWidth - charSpacing;
+                totalHeight = charHeight;
                 // Kontrola zda se text vejde na displej
-                if (x + textLength * charWidth > WIDTH) {
-                    posX = WIDTH - textLength * charWidth;
+                if (x + totalWidth > WIDTH) {
+                    posX = WIDTH - totalWidth;
                     if (posX < 0) posX = 0;
-                }
-                // Vyplnění pozadí
-                if (bg !== color) {
-                    fillRect(posX, posY, textLength * charWidth, charHeight, bg);
                 }
                 break;
                 
             case 1: // 90 stupňů - shora dolů
                 dX = 0;
-                dY = charWidth;
+                dY = totalCharWidth;
+                totalWidth = charHeight;
+                totalHeight = textLength * totalCharWidth - charSpacing;
                 // Kontrola zda se text vejde na displej
-                if (y + textLength * charWidth > HEIGHT) {
-                    posY = HEIGHT - textLength * charWidth;
+                if (y + totalHeight > HEIGHT) {
+                    posY = HEIGHT - totalHeight;
                     if (posY < 0) posY = 0;
-                }
-                // Vyplnění pozadí
-                if (bg !== color) {
-                    fillRect(posX, posY, charHeight, textLength * charWidth, bg);
                 }
                 break;
                 
             case 2: // 180 stupňů - zprava doleva
-                dX = -charWidth;
+                dX = -totalCharWidth;
                 dY = 0;
+                totalWidth = textLength * totalCharWidth - charSpacing;
+                totalHeight = charHeight;
                 // Posunutí počáteční pozice vpravo pro správné vykreslení
-                posX = x + (textLength - 1) * charWidth;
+                posX = x + (textLength - 1) * totalCharWidth;
                 // Kontrola zda se text vejde na displej
                 if (posX >= WIDTH) {
                     posX = WIDTH - 1;
                 }
-                if (posX - (textLength - 1) * charWidth < 0) {
-                    posX = (textLength - 1) * charWidth;
-                }
-                // Vyplnění pozadí
-                if (bg !== color) {
-                    fillRect(posX - (textLength - 1) * charWidth, posY, textLength * charWidth, charHeight, bg);
+                if (posX - (textLength - 1) * totalCharWidth < 0) {
+                    posX = (textLength - 1) * totalCharWidth;
                 }
                 break;
                 
             case 3: // 270 stupňů - zdola nahoru
                 dX = 0;
-                dY = -charWidth;
+                dY = -totalCharWidth;
+                totalWidth = charHeight;
+                totalHeight = textLength * totalCharWidth - charSpacing;
                 // Posunutí počáteční pozice dolů pro správné vykreslení
-                posY = y + (textLength - 1) * charWidth;
+                posY = y + (textLength - 1) * totalCharWidth;
                 // Kontrola zda se text vejde na displej
                 if (posY >= HEIGHT) {
                     posY = HEIGHT - 1;
                 }
-                if (posY - (textLength - 1) * charWidth < 0) {
-                    posY = (textLength - 1) * charWidth;
-                }
-                // Vyplnění pozadí
-                if (bg !== color) {
-                    fillRect(posX, posY - (textLength - 1) * charWidth, charHeight, textLength * charWidth, bg);
+                if (posY - (textLength - 1) * totalCharWidth < 0) {
+                    posY = (textLength - 1) * totalCharWidth;
                 }
                 break;
         }
+        
+        // Vyplnění pozadí celého textu najednou
+        if (bg !== color) {
+            switch (currentRotation) {
+                case 0:
+                    fillRect(posX, posY, totalWidth, totalHeight, bg);
+                    break;
+                case 1:
+                    fillRect(posX, posY, totalWidth, totalHeight, bg);
+                    break;
+                case 2:
+                    fillRect(posX - (textLength - 1) * totalCharWidth, posY, totalWidth, totalHeight, bg);
+                    break;
+                case 3:
+                    fillRect(posX, posY - (textLength - 1) * totalCharWidth, totalWidth, totalHeight, bg);
+                    break;
+            }
+        }
 
+        let curX = posX;
+        let curY = posY;
+        
         // Pro každý znak
         for (let charIdx = 0; charIdx < textLength; charIdx++) {
             const charCode = text.charCodeAt(charIdx) - 32;  // 32 = mezera, první znak
-            if (charCode < 0 || charCode >= FONT_6X8.length) continue;
+            if (charCode < 0 || charCode >= FONT_8X10.length) continue;
 
-            const fontData = FONT_6X8[charCode];
+            const fontData = FONT_8X10[charCode];
             
             // Pro každý řádek znaku
-            for (let row = 0; row < 8; row++) {
+            for (let row = 0; row < 10; row++) {
                 const rowBits = fontData[row];
                 
                 // Pro každý sloupec znaku
-                for (let col = 0; col < 6; col++) {
+                for (let col = 0; col < 8; col++) {
                     // Kontrola, zda je pixel nastaven (bit na pozici col)
-                    const isPixelSet = (rowBits & (1 << (5 - col))) !== 0;
+                    const isPixelSet = (rowBits & (1 << (7 - col))) !== 0;
                     
                     // Výpočet pozice pixelu podle rotace
                     let pixelX = 0;
@@ -536,35 +615,213 @@ namespace ST7735 {
                     
                     switch (currentRotation) {
                         case 0: // 0 stupňů
-                            pixelX = posX + col;
-                            pixelY = posY + row;
+                            pixelX = curX + col;
+                            pixelY = curY + row;
                             break;
                         case 1: // 90 stupňů
-                            pixelX = posX + row;
-                            pixelY = posY + col;
+                            pixelX = curX + row;
+                            pixelY = curY + col;
                             break;
                         case 2: // 180 stupňů
-                            pixelX = posX - col;
-                            pixelY = posY + (7 - row);
+                            pixelX = curX - col;
+                            pixelY = curY + (9 - row);
                             break;
                         case 3: // 270 stupňů
-                            pixelX = posX + (7 - row);
-                            pixelY = posY - col;
+                            pixelX = curX + (9 - row);
+                            pixelY = curY - col;
                             break;
                     }
                     
-                    // Vykreslit pixel pokud je nastaven, nebo pozadí pokud není
+                    // Vykreslit pixel pouze pokud je nastaven
                     if (isPixelSet) {
-                        drawPixel(pixelX, pixelY, color);
-                    } else if (bg !== color) {
-                        drawPixel(pixelX, pixelY, bg);
+                        if (pixelX >= 0 && pixelX < WIDTH && pixelY >= 0 && pixelY < HEIGHT) {
+                            drawPixel(pixelX, pixelY, color);
+                        }
                     }
                 }
             }
             
             // Posun na další znak
-            posX += dX;
-            posY += dY;
+            curX += dX;
+            curY += dY;
+        }
+    }
+
+    /**
+     * Vykreslení velkého textu
+     * @param text text k vykreslení
+     * @param x x pozice
+     * @param y y pozice
+     * @param color barva textu
+     * @param scale měřítko textu (1-4)
+     * @param bgColor barva pozadí, výchozí je černá
+     */
+    //% block="vykreslit velký text %text na x %x y %y barva %color měřítko %scale || barva pozadí %bgColor"
+    //% weight=84 group="Text"
+    //% inlineInputMode=inline
+    //% x.min=0 x.max=120 y.min=0 y.max=150
+    //% scale.min=1 scale.max=4 scale.defl=2
+    //% expandableArgumentMode="toggle"
+    export function drawBigText(text: string, x: number, y: number, color: number, scale: number = 2, bgColor?: number): void {
+        // Pokud bgColor není definován, použij BLACK
+        const bg = (bgColor === undefined) ? BLACK() : bgColor;
+        
+        // Omezení měřítka
+        if (scale < 1) scale = 1;
+        if (scale > 4) scale = 4;
+
+        const textLength = text.length;
+        const charWidth = 8 * scale;
+        const charHeight = 10 * scale;
+        const charSpacing = 2 * scale;
+        const totalCharWidth = charWidth + charSpacing;
+        
+        // Nastavení směru vykreslování podle rotace
+        let posX = x;
+        let posY = y;
+        let dX = 0;
+        let dY = 0;
+        let totalWidth = 0;
+        let totalHeight = 0;
+        
+        // Určení směru vykreslování podle rotace (analogicky jako u drawText)
+        switch (currentRotation) {
+            case 0: // 0 stupňů - normální zleva doprava
+                dX = totalCharWidth;
+                dY = 0;
+                totalWidth = textLength * totalCharWidth - charSpacing;
+                totalHeight = charHeight;
+                // Kontrola zda se text vejde na displej
+                if (x + totalWidth > WIDTH) {
+                    posX = WIDTH - totalWidth;
+                    if (posX < 0) posX = 0;
+                }
+                break;
+                
+            case 1: // 90 stupňů - shora dolů
+                dX = 0;
+                dY = totalCharWidth;
+                totalWidth = charHeight;
+                totalHeight = textLength * totalCharWidth - charSpacing;
+                // Kontrola zda se text vejde na displej
+                if (y + totalHeight > HEIGHT) {
+                    posY = HEIGHT - totalHeight;
+                    if (posY < 0) posY = 0;
+                }
+                break;
+                
+            case 2: // 180 stupňů - zprava doleva
+                dX = -totalCharWidth;
+                dY = 0;
+                totalWidth = textLength * totalCharWidth - charSpacing;
+                totalHeight = charHeight;
+                // Posunutí počáteční pozice vpravo pro správné vykreslení
+                posX = x + (textLength - 1) * totalCharWidth;
+                // Kontrola zda se text vejde na displej
+                if (posX >= WIDTH) {
+                    posX = WIDTH - 1;
+                }
+                if (posX - (textLength - 1) * totalCharWidth < 0) {
+                    posX = (textLength - 1) * totalCharWidth;
+                }
+                break;
+                
+            case 3: // 270 stupňů - zdola nahoru
+                dX = 0;
+                dY = -totalCharWidth;
+                totalWidth = charHeight;
+                totalHeight = textLength * totalCharWidth - charSpacing;
+                // Posunutí počáteční pozice dolů pro správné vykreslení
+                posY = y + (textLength - 1) * totalCharWidth;
+                // Kontrola zda se text vejde na displej
+                if (posY >= HEIGHT) {
+                    posY = HEIGHT - 1;
+                }
+                if (posY - (textLength - 1) * totalCharWidth < 0) {
+                    posY = (textLength - 1) * totalCharWidth;
+                }
+                break;
+        }
+        
+        // Vyplnění pozadí celého textu najednou
+        if (bg !== color) {
+            switch (currentRotation) {
+                case 0:
+                    fillRect(posX, posY, totalWidth, totalHeight, bg);
+                    break;
+                case 1:
+                    fillRect(posX, posY, totalWidth, totalHeight, bg);
+                    break;
+                case 2:
+                    fillRect(posX - (textLength - 1) * totalCharWidth, posY, totalWidth, totalHeight, bg);
+                    break;
+                case 3:
+                    fillRect(posX, posY - (textLength - 1) * totalCharWidth, totalWidth, totalHeight, bg);
+                    break;
+            }
+        }
+
+        let curX = posX;
+        let curY = posY;
+        
+        // Pro každý znak
+        for (let charIdx = 0; charIdx < textLength; charIdx++) {
+            const charCode = text.charCodeAt(charIdx) - 32;  // 32 = mezera, první znak
+            if (charCode < 0 || charCode >= FONT_8X10.length) continue;
+
+            const fontData = FONT_8X10[charCode];
+            
+            // Pro každý řádek znaku
+            for (let row = 0; row < 10; row++) {
+                const rowBits = fontData[row];
+                
+                // Pro každý sloupec znaku
+                for (let col = 0; col < 8; col++) {
+                    // Kontrola, zda je pixel nastaven (bit na pozici col)
+                    const isPixelSet = (rowBits & (1 << (7 - col))) !== 0;
+                    
+                    if (isPixelSet) {
+                        // Vykreslit zvětšený pixel (scale×scale čtverec)
+                        let baseX = 0;
+                        let baseY = 0;
+                        
+                        switch (currentRotation) {
+                            case 0: // 0 stupňů
+                                baseX = curX + col * scale;
+                                baseY = curY + row * scale;
+                                break;
+                            case 1: // 90 stupňů
+                                baseX = curX + row * scale;
+                                baseY = curY + col * scale;
+                                break;
+                            case 2: // 180 stupňů
+                                baseX = curX - col * scale;
+                                baseY = curY + (9 - row) * scale;
+                                break;
+                            case 3: // 270 stupňů
+                                baseX = curX + (9 - row) * scale;
+                                baseY = curY - col * scale;
+                                break;
+                        }
+                        
+                        // Vykreslit scale×scale čtverec
+                        for (let sy = 0; sy < scale; sy++) {
+                            for (let sx = 0; sx < scale; sx++) {
+                                const pixelX = baseX + sx * (currentRotation === 2 ? -1 : 1);
+                                const pixelY = baseY + sy * (currentRotation === 3 ? -1 : 1);
+                                
+                                if (pixelX >= 0 && pixelX < WIDTH && pixelY >= 0 && pixelY < HEIGHT) {
+                                    drawPixel(pixelX, pixelY, color);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Posun na další znak
+            curX += dX;
+            curY += dY;
         }
     }
 }
