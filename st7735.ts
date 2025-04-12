@@ -853,7 +853,7 @@ namespace ST7735 {
     }
 
     /**
-     * Zobrazení obrázku z hexadecimálních dat
+     * Zobrazení obrázku z hexadecimálních dat (RGB565 formát)
      * @param hexString Řetězec s hexadecimálními hodnotami raw obrazových dat
      * @param x X pozice začátku zobrazení
      * @param y Y pozice začátku zobrazení
@@ -877,7 +877,6 @@ namespace ST7735 {
         format: number = 0
     ): void {
         // Odstranění bílých znaků a rozdělení na jednotlivé hex hodnoty
-        // Oprava: Místo RegExp použijeme metodu s řetězci
         let cleanString = "";
         for (let i = 0; i < hexString.length; i++) {
             // Přeskočíme bílé znaky (mezera, tab, nový řádek)
@@ -889,14 +888,36 @@ namespace ST7735 {
         
         // Převod na číselné hodnoty a odstranění neplatných hodnot
         const bytes: number[] = [];
+        
         for (let i = 0; i < hexValues.length; i++) {
-            let value = hexValues[i].trim(); // Odstraní bílé znaky na začátku a konci
+            let value = hexValues[i];
+            let trimmedValue = "";
+            
+            // Vlastní implementace trim()
+            let startIndex = 0;
+            while (startIndex < value.length && 
+                   (value[startIndex] === ' ' || value[startIndex] === '\t' || 
+                    value[startIndex] === '\n' || value[startIndex] === '\r')) {
+                startIndex++;
+            }
+            
+            let endIndex = value.length - 1;
+            while (endIndex >= 0 && 
+                   (value[endIndex] === ' ' || value[endIndex] === '\t' || 
+                    value[endIndex] === '\n' || value[endIndex] === '\r')) {
+                endIndex--;
+            }
+            
+            for (let j = startIndex; j <= endIndex; j++) {
+                trimmedValue += value[j];
+            }
             
             // Kontrola, zda hodnota začíná "0x" nebo "0X"
-            if (value.length >= 2 && (value.substr(0, 2).toLowerCase() === "0x")) {
-                // Převod z hex na číslo
-                const numValue = parseInt(value, 16);
-                if (!isNaN(numValue) && numValue >= 0 && numValue <= 255) {
+            if (trimmedValue.length >= 2 && (trimmedValue.substr(0, 2).toLowerCase() === "0x")) {
+                // Převod z hex na číslo - odstraněn radix parametr
+                const numValue = parseInt(trimmedValue);
+                // Přidáme hodnotu do pole
+                if (numValue >= 0 && numValue <= 255) {
                     bytes.push(numValue);
                 }
             }
@@ -915,27 +936,65 @@ namespace ST7735 {
         
         if (format === 0) {
             // RGB565 formát - každý pixel je 2 bajty
-            for (let i = 0; i < bytes.length; i += 2) {
-                if (i + 1 < bytes.length) {
-                    pins.spiWrite(bytes[i]);      // Vyšší bajt
-                    pins.spiWrite(bytes[i + 1]);  // Nižší bajt
+            let pixelCount = 0;
+            const totalPixels = width * height;
+            
+            // Procházíme data po bajtech
+            for (let i = 0; i < bytes.length - 1; i += 2) {
+                if (pixelCount < totalPixels) {
+                    // Vyšší bajt
+                    pins.spiWrite(bytes[i]);
+                    // Nižší bajt
+                    pins.spiWrite(bytes[i + 1]);
+                    pixelCount++;
+                } else {
+                    break; // Pokud jsme již vykreslili všechny pixely
                 }
+            }
+            
+            // Pokud nemáme dostatek dat, doplníme černými pixely
+            while (pixelCount < totalPixels) {
+                pins.spiWrite(0);  // Černá barva (vyšší bajt)
+                pins.spiWrite(0);  // Černá barva (nižší bajt)
+                pixelCount++;
             }
         } else {
             // Monochromatický formát - každý bajt obsahuje 8 pixelů (1 bit na pixel)
+            let bitCount = 0;
+            const totalBits = width * height;
+            
             for (let i = 0; i < bytes.length; i++) {
                 const byte = bytes[i];
                 // Každý bit vykreslíme jako černý nebo bílý pixel
-                for (let bit = 7; bit >= 0; bit--) {
-                    const color = (byte & (1 << bit)) ? WHITE() : BLACK();
-                    const hi = (color >> 8) & 0xFF;
-                    const lo = color & 0xFF;
-                    pins.spiWrite(hi);
-                    pins.spiWrite(lo);
+                for (let bit = 7; bit >= 0 && bitCount < totalBits; bit--) {
+                    const pixelOn = (byte & (1 << bit)) !== 0;
+                    const color = pixelOn ? WHITE() : BLACK();
+                    pins.spiWrite((color >> 8) & 0xFF);  // Vyšší bajt
+                    pins.spiWrite(color & 0xFF);         // Nižší bajt
+                    bitCount++;
                 }
+            }
+            
+            // Pokud nemáme dostatek dat, doplníme černými pixely
+            while (bitCount < totalBits) {
+                pins.spiWrite(0);  // Černá barva (vyšší bajt)
+                pins.spiWrite(0);  // Černá barva (nižší bajt)
+                bitCount++;
             }
         }
         
         pins.digitalWritePin(TFT_CS, 1);
+    }
+
+    // Pomocná funkce pro převod hexadecimálního znaku na číslo
+    function hexCharToInt(hexChar: string): number {
+        const char = hexChar.toUpperCase();
+        if (char >= '0' && char <= '9') {
+            return char.charCodeAt(0) - '0'.charCodeAt(0);
+        } else if (char >= 'A' && char <= 'F') {
+            return char.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+        } else {
+            return -1; // Neplatný znak
+        }
     }
 }
