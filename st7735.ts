@@ -488,152 +488,163 @@ namespace ST7735 {
      * @param x x pozice
      * @param y y pozice
      * @param color barva textu
+     * @param rotation orientace textu (0-3)
      * @param bgColor barva pozadí, výchozí je černá
      */
-    //% block="vykreslit text %text na x %x y %y barva %color || barva pozadí %bgColor"
+    //% block="vykreslit text %text na x %x y %y barva %color orientace %rotation || barva pozadí %bgColor"
     //% weight=85 group="Text"
     //% inlineInputMode=inline
     //% x.min=0 x.max=120 y.min=0 y.max=150
+    //% rotation.min=0 rotation.max=3 rotation.defl=0
     //% expandableArgumentMode="toggle"
-    export function drawText(text: string, x: number, y: number, color: number, bgColor?: number): void {
+    export function drawText(text: string, x: number, y: number, color: number, rotation: number = 0, bgColor?: number): void {
         // Pokud bgColor není definován, použij BLACK
         const bg = (bgColor === undefined) ? BLACK() : bgColor;
-
+        
+        // Omezte rotation na platné hodnoty 0-3
+        rotation = Math.max(0, Math.min(3, rotation));
+    
         const textLength = text.length;
         const charWidth = 8;
         const charHeight = 10;
-        const charSpacing = 2; // Zvětšeno pro lepší čitelnost
+        const charSpacing = 2; // Mezera mezi znaky
         const totalCharWidth = charWidth + charSpacing;
         
-        // Nastavení směru vykreslování podle rotace
-        let posX = x;
-        let posY = y;
-        let dX = 0;
-        let dY = 0;
-        let totalWidth = 0;
-        let totalHeight = 0;
+        // Proměnné pro pozici a směr
+        let startX = x;
+        let startY = y;
+        let deltaX = 0;
+        let deltaY = 0;
         
-        // Určení směru vykreslování podle rotace
-        switch (currentRotation) {
-            case 0: // 0 stupňů - normální zleva doprava
-                dX = totalCharWidth;
-                dY = 0;
-                totalWidth = textLength * totalCharWidth - charSpacing;
-                totalHeight = charHeight;
-                // Kontrola zda se text vejde na displej
-                if (x + totalWidth > WIDTH) {
-                    posX = WIDTH - totalWidth;
-                    if (posX < 0) posX = 0;
+        // Nastavení směru podle orientace textu
+        switch (rotation) {
+            case 0: // Normální - zleva doprava
+                deltaX = totalCharWidth;
+                deltaY = 0;
+                
+                // Kontrola, zda text nepřesáhne okraj displeje
+                if (startX + textLength * totalCharWidth > WIDTH) {
+                    startX = Math.max(0, WIDTH - textLength * totalCharWidth);
                 }
                 break;
                 
-            case 1: // 90 stupňů - shora dolů
-                dX = 0;
-                dY = totalCharWidth;
-                totalWidth = charHeight;
-                totalHeight = textLength * totalCharWidth - charSpacing;
-                // Kontrola zda se text vejde na displej
-                if (y + totalHeight > HEIGHT) {
-                    posY = HEIGHT - totalHeight;
-                    if (posY < 0) posY = 0;
+            case 1: // Otočený o 90° - shora dolů
+                deltaX = 0;
+                deltaY = totalCharWidth;
+                
+                // Kontrola, zda text nepřesáhne okraj displeje
+                if (startY + textLength * totalCharWidth > HEIGHT) {
+                    startY = Math.max(0, HEIGHT - textLength * totalCharWidth);
                 }
                 break;
                 
-            case 2: // 180 stupňů - zprava doleva
-                dX = -totalCharWidth;
-                dY = 0;
-                totalWidth = textLength * totalCharWidth - charSpacing;
-                totalHeight = charHeight;
-                // Posunutí počáteční pozice vpravo pro správné vykreslení
-                posX = x + (textLength - 1) * totalCharWidth;
-                // Kontrola zda se text vejde na displej
-                if (posX >= WIDTH) {
-                    posX = WIDTH - 1;
+            case 2: // Otočený o 180° - zprava doleva
+                deltaX = -totalCharWidth;
+                deltaY = 0;
+                
+                // Posun startovní pozice doleva
+                startX += (textLength - 1) * totalCharWidth;
+                
+                // Kontrola, zda text nepřesáhne okraj displeje
+                if (startX >= WIDTH) {
+                    startX = WIDTH - 1;
                 }
-                if (posX - (textLength - 1) * totalCharWidth < 0) {
-                    posX = (textLength - 1) * totalCharWidth;
+                if (startX - (textLength - 1) * totalCharWidth < 0) {
+                    startX = (textLength - 1) * totalCharWidth;
                 }
                 break;
                 
-            case 3: // 270 stupňů - zdola nahoru
-                dX = 0;
-                dY = -totalCharWidth;
-                totalWidth = charHeight;
-                totalHeight = textLength * totalCharWidth - charSpacing;
-                // Posunutí počáteční pozice dolů pro správné vykreslení
-                posY = y + (textLength - 1) * totalCharWidth;
-                // Kontrola zda se text vejde na displej
-                if (posY >= HEIGHT) {
-                    posY = HEIGHT - 1;
+            case 3: // Otočený o 270° - zdola nahoru
+                deltaX = 0;
+                deltaY = -totalCharWidth;
+                
+                // Posun startovní pozice nahoru
+                startY += (textLength - 1) * totalCharWidth;
+                
+                // Kontrola, zda text nepřesáhne okraj displeje
+                if (startY >= HEIGHT) {
+                    startY = HEIGHT - 1;
                 }
-                if (posY - (textLength - 1) * totalCharWidth < 0) {
-                    posY = (textLength - 1) * totalCharWidth;
+                if (startY - (textLength - 1) * totalCharWidth < 0) {
+                    startY = (textLength - 1) * totalCharWidth;
                 }
                 break;
         }
         
-        // Vyplnění pozadí celého textu najednou
+        // Vyplnění pozadí pro text
         if (bg !== color) {
-            switch (currentRotation) {
-                case 0:
-                    fillRect(posX, posY, totalWidth, totalHeight, bg);
-                    break;
-                case 1:
-                    fillRect(posX, posY, totalWidth, totalHeight, bg);
-                    break;
-                case 2:
-                    fillRect(posX - (textLength - 1) * totalCharWidth, posY, totalWidth, totalHeight, bg);
-                    break;
-                case 3:
-                    fillRect(posX, posY - (textLength - 1) * totalCharWidth, totalWidth, totalHeight, bg);
-                    break;
+            let bgWidth = 0;
+            let bgHeight = 0;
+            let bgX = 0;
+            let bgY = 0;
+            
+            if (rotation === 0) {
+                bgWidth = textLength * totalCharWidth - charSpacing;
+                bgHeight = charHeight;
+                bgX = startX;
+                bgY = startY;
+            } else if (rotation === 1) {
+                bgWidth = charHeight;
+                bgHeight = textLength * totalCharWidth - charSpacing;
+                bgX = startX;
+                bgY = startY;
+            } else if (rotation === 2) {
+                bgWidth = textLength * totalCharWidth - charSpacing;
+                bgHeight = charHeight;
+                bgX = startX - (textLength - 1) * totalCharWidth;
+                bgY = startY;
+            } else if (rotation === 3) {
+                bgWidth = charHeight;
+                bgHeight = textLength * totalCharWidth - charSpacing;
+                bgX = startX;
+                bgY = startY - (textLength - 1) * totalCharWidth;
             }
+            
+            fillRect(bgX, bgY, bgWidth, bgHeight, bg);
         }
-
-        let curX = posX;
-        let curY = posY;
         
-        // Pro každý znak
-        for (let charIdx = 0; charIdx < textLength; charIdx++) {
-            const charCode = text.charCodeAt(charIdx) - 32;  // 32 = mezera, první znak
+        // Vykreslení textu
+        let curX = startX;
+        let curY = startY;
+        
+        for (let i = 0; i < textLength; i++) {
+            const charCode = text.charCodeAt(i) - 32;  // ASCII 32 = mezera
             if (charCode < 0 || charCode >= FONT_8X10.length) continue;
-
+            
             const fontData = FONT_8X10[charCode];
             
-            // Pro každý řádek znaku
+            // Vykreslení znaku pixel po pixelu
             for (let row = 0; row < 10; row++) {
-                const rowBits = fontData[row];
+                const rowData = fontData[row];
                 
-                // Pro každý sloupec znaku
                 for (let col = 0; col < 8; col++) {
-                    // Kontrola, zda je pixel nastaven (bit na pozici col)
-                    const isPixelSet = (rowBits & (1 << (7 - col))) !== 0;
+                    const isPixelOn = (rowData & (1 << (7 - col))) !== 0;
                     
-                    // Výpočet pozice pixelu podle rotace
-                    let pixelX = 0;
-                    let pixelY = 0;
-                    
-                    switch (currentRotation) {
-                        case 0: // 0 stupňů
-                            pixelX = curX + col;
-                            pixelY = curY + row;
-                            break;
-                        case 1: // 90 stupňů
-                            pixelX = curX + row;
-                            pixelY = curY + col;
-                            break;
-                        case 2: // 180 stupňů
-                            pixelX = curX - col;
-                            pixelY = curY + (9 - row);
-                            break;
-                        case 3: // 270 stupňů
-                            pixelX = curX + (9 - row);
-                            pixelY = curY - col;
-                            break;
-                    }
-                    
-                    // Vykreslit pixel pouze pokud je nastaven
-                    if (isPixelSet) {
+                    if (isPixelOn) {
+                        // Výpočet souřadnic podle orientace
+                        let pixelX = 0;
+                        let pixelY = 0;
+                        
+                        switch (rotation) {
+                            case 0:
+                                pixelX = curX + col;
+                                pixelY = curY + row;
+                                break;
+                            case 1:
+                                pixelX = curX + (9 - row);
+                                pixelY = curY + col;
+                                break;
+                            case 2:
+                                pixelX = curX - col;
+                                pixelY = curY + (9 - row);
+                                break;
+                            case 3:
+                                pixelX = curX - (9 - row);
+                                pixelY = curY - col;
+                                break;
+                        }
+                        
+                        // Kreslení pixelu, pokud je v rozsahu displeje
                         if (pixelX >= 0 && pixelX < WIDTH && pixelY >= 0 && pixelY < HEIGHT) {
                             drawPixel(pixelX, pixelY, color);
                         }
@@ -642,11 +653,11 @@ namespace ST7735 {
             }
             
             // Posun na další znak
-            curX += dX;
-            curY += dY;
+            curX += deltaX;
+            curY += deltaY;
         }
     }
-
+    
     /**
      * Vykreslení velkého textu
      * @param text text k vykreslení
@@ -654,162 +665,186 @@ namespace ST7735 {
      * @param y y pozice
      * @param color barva textu
      * @param scale měřítko textu (1-4)
+     * @param rotation orientace textu (0-3)
      * @param bgColor barva pozadí, výchozí je černá
      */
-    //% block="vykreslit velký text %text na x %x y %y barva %color měřítko %scale || barva pozadí %bgColor"
+    //% block="vykreslit velký text %text na x %x y %y barva %color měřítko %scale orientace %rotation || barva pozadí %bgColor"
     //% weight=84 group="Text"
     //% inlineInputMode=inline
     //% x.min=0 x.max=120 y.min=0 y.max=150
     //% scale.min=1 scale.max=4 scale.defl=2
+    //% rotation.min=0 rotation.max=3 rotation.defl=0
     //% expandableArgumentMode="toggle"
-    export function drawBigText(text: string, x: number, y: number, color: number, scale: number = 2, bgColor?: number): void {
+    export function drawBigText(text: string, x: number, y: number, color: number, scale: number = 2, rotation: number = 0, bgColor?: number): void {
         // Pokud bgColor není definován, použij BLACK
         const bg = (bgColor === undefined) ? BLACK() : bgColor;
         
-        // Omezení měřítka
-        if (scale < 1) scale = 1;
-        if (scale > 4) scale = 4;
-
+        // Omezte na platné hodnoty
+        scale = Math.max(1, Math.min(4, scale));
+        rotation = Math.max(0, Math.min(3, rotation));
+    
         const textLength = text.length;
         const charWidth = 8 * scale;
         const charHeight = 10 * scale;
-        const charSpacing = 2 * scale;
+        const charSpacing = 2 * scale; // Mezera mezi znaky
         const totalCharWidth = charWidth + charSpacing;
         
-        // Nastavení směru vykreslování podle rotace
-        let posX = x;
-        let posY = y;
-        let dX = 0;
-        let dY = 0;
-        let totalWidth = 0;
-        let totalHeight = 0;
+        // Proměnné pro pozici a směr
+        let startX = x;
+        let startY = y;
+        let deltaX = 0;
+        let deltaY = 0;
         
-        // Určení směru vykreslování podle rotace (analogicky jako u drawText)
-        switch (currentRotation) {
-            case 0: // 0 stupňů - normální zleva doprava
-                dX = totalCharWidth;
-                dY = 0;
-                totalWidth = textLength * totalCharWidth - charSpacing;
-                totalHeight = charHeight;
-                // Kontrola zda se text vejde na displej
-                if (x + totalWidth > WIDTH) {
-                    posX = WIDTH - totalWidth;
-                    if (posX < 0) posX = 0;
+        // Nastavení směru podle orientace textu
+        switch (rotation) {
+            case 0: // Normální - zleva doprava
+                deltaX = totalCharWidth;
+                deltaY = 0;
+                
+                // Kontrola, zda text nepřesáhne okraj displeje
+                if (startX + textLength * totalCharWidth > WIDTH) {
+                    startX = Math.max(0, WIDTH - textLength * totalCharWidth);
                 }
                 break;
                 
-            case 1: // 90 stupňů - shora dolů
-                dX = 0;
-                dY = totalCharWidth;
-                totalWidth = charHeight;
-                totalHeight = textLength * totalCharWidth - charSpacing;
-                // Kontrola zda se text vejde na displej
-                if (y + totalHeight > HEIGHT) {
-                    posY = HEIGHT - totalHeight;
-                    if (posY < 0) posY = 0;
+            case 1: // Otočený o 90° - shora dolů
+                deltaX = 0;
+                deltaY = totalCharWidth;
+                
+                // Kontrola, zda text nepřesáhne okraj displeje
+                if (startY + textLength * totalCharWidth > HEIGHT) {
+                    startY = Math.max(0, HEIGHT - textLength * totalCharWidth);
                 }
                 break;
                 
-            case 2: // 180 stupňů - zprava doleva
-                dX = -totalCharWidth;
-                dY = 0;
-                totalWidth = textLength * totalCharWidth - charSpacing;
-                totalHeight = charHeight;
-                // Posunutí počáteční pozice vpravo pro správné vykreslení
-                posX = x + (textLength - 1) * totalCharWidth;
-                // Kontrola zda se text vejde na displej
-                if (posX >= WIDTH) {
-                    posX = WIDTH - 1;
+            case 2: // Otočený o 180° - zprava doleva
+                deltaX = -totalCharWidth;
+                deltaY = 0;
+                
+                // Posun startovní pozice doleva
+                startX += (textLength - 1) * totalCharWidth;
+                
+                // Kontrola, zda text nepřesáhne okraj displeje
+                if (startX >= WIDTH) {
+                    startX = WIDTH - 1;
                 }
-                if (posX - (textLength - 1) * totalCharWidth < 0) {
-                    posX = (textLength - 1) * totalCharWidth;
+                if (startX - (textLength - 1) * totalCharWidth < 0) {
+                    startX = (textLength - 1) * totalCharWidth;
                 }
                 break;
                 
-            case 3: // 270 stupňů - zdola nahoru
-                dX = 0;
-                dY = -totalCharWidth;
-                totalWidth = charHeight;
-                totalHeight = textLength * totalCharWidth - charSpacing;
-                // Posunutí počáteční pozice dolů pro správné vykreslení
-                posY = y + (textLength - 1) * totalCharWidth;
-                // Kontrola zda se text vejde na displej
-                if (posY >= HEIGHT) {
-                    posY = HEIGHT - 1;
+            case 3: // Otočený o 270° - zdola nahoru
+                deltaX = 0;
+                deltaY = -totalCharWidth;
+                
+                // Posun startovní pozice nahoru
+                startY += (textLength - 1) * totalCharWidth;
+                
+                // Kontrola, zda text nepřesáhne okraj displeje
+                if (startY >= HEIGHT) {
+                    startY = HEIGHT - 1;
                 }
-                if (posY - (textLength - 1) * totalCharWidth < 0) {
-                    posY = (textLength - 1) * totalCharWidth;
+                if (startY - (textLength - 1) * totalCharWidth < 0) {
+                    startY = (textLength - 1) * totalCharWidth;
                 }
                 break;
         }
         
-        // Vyplnění pozadí celého textu najednou
+        // Vyplnění pozadí pro text
         if (bg !== color) {
-            switch (currentRotation) {
-                case 0:
-                    fillRect(posX, posY, totalWidth, totalHeight, bg);
-                    break;
-                case 1:
-                    fillRect(posX, posY, totalWidth, totalHeight, bg);
-                    break;
-                case 2:
-                    fillRect(posX - (textLength - 1) * totalCharWidth, posY, totalWidth, totalHeight, bg);
-                    break;
-                case 3:
-                    fillRect(posX, posY - (textLength - 1) * totalCharWidth, totalWidth, totalHeight, bg);
-                    break;
+            let bgWidth = 0;
+            let bgHeight = 0;
+            let bgX = 0;
+            let bgY = 0;
+            
+            if (rotation === 0) {
+                bgWidth = textLength * totalCharWidth - charSpacing;
+                bgHeight = charHeight;
+                bgX = startX;
+                bgY = startY;
+            } else if (rotation === 1) {
+                bgWidth = charHeight;
+                bgHeight = textLength * totalCharWidth - charSpacing;
+                bgX = startX;
+                bgY = startY;
+            } else if (rotation === 2) {
+                bgWidth = textLength * totalCharWidth - charSpacing;
+                bgHeight = charHeight;
+                bgX = startX - (textLength - 1) * totalCharWidth;
+                bgY = startY;
+            } else if (rotation === 3) {
+                bgWidth = charHeight;
+                bgHeight = textLength * totalCharWidth - charSpacing;
+                bgX = startX;
+                bgY = startY - (textLength - 1) * totalCharWidth;
             }
+            
+            fillRect(bgX, bgY, bgWidth, bgHeight, bg);
         }
-
-        let curX = posX;
-        let curY = posY;
         
-        // Pro každý znak
-        for (let charIdx = 0; charIdx < textLength; charIdx++) {
-            const charCode = text.charCodeAt(charIdx) - 32;  // 32 = mezera, první znak
+        // Vykreslení textu
+        let curX = startX;
+        let curY = startY;
+        
+        for (let i = 0; i < textLength; i++) {
+            const charCode = text.charCodeAt(i) - 32;  // ASCII 32 = mezera
             if (charCode < 0 || charCode >= FONT_8X10.length) continue;
-
+            
             const fontData = FONT_8X10[charCode];
             
-            // Pro každý řádek znaku
+            // Vykreslení znaku pixel po pixelu se zvětšením
             for (let row = 0; row < 10; row++) {
-                const rowBits = fontData[row];
+                const rowData = fontData[row];
                 
-                // Pro každý sloupec znaku
                 for (let col = 0; col < 8; col++) {
-                    // Kontrola, zda je pixel nastaven (bit na pozici col)
-                    const isPixelSet = (rowBits & (1 << (7 - col))) !== 0;
+                    const isPixelOn = (rowData & (1 << (7 - col))) !== 0;
                     
-                    if (isPixelSet) {
-                        // Vykreslit zvětšený pixel (scale×scale čtverec)
+                    if (isPixelOn) {
+                        // Výpočet základních souřadnic podle orientace (levý horní roh pixelu)
                         let baseX = 0;
                         let baseY = 0;
                         
-                        switch (currentRotation) {
-                            case 0: // 0 stupňů
+                        switch (rotation) {
+                            case 0:
                                 baseX = curX + col * scale;
                                 baseY = curY + row * scale;
                                 break;
-                            case 1: // 90 stupňů
-                                baseX = curX + row * scale;
+                            case 1:
+                                baseX = curX + (9 - row) * scale;
                                 baseY = curY + col * scale;
                                 break;
-                            case 2: // 180 stupňů
+                            case 2:
                                 baseX = curX - col * scale;
                                 baseY = curY + (9 - row) * scale;
                                 break;
-                            case 3: // 270 stupňů
-                                baseX = curX + (9 - row) * scale;
+                            case 3:
+                                baseX = curX - (9 - row) * scale; 
                                 baseY = curY - col * scale;
                                 break;
                         }
                         
-                        // Vykreslit scale×scale čtverec
-                        for (let sy = 0; sy < scale; sy++) {
-                            for (let sx = 0; sx < scale; sx++) {
-                                const pixelX = baseX + sx * (currentRotation === 2 ? -1 : 1);
-                                const pixelY = baseY + sy * (currentRotation === 3 ? -1 : 1);
+                        // Vykreslení čtverce o velikosti scale×scale
+                        for (let dy = 0; dy < scale; dy++) {
+                            for (let dx = 0; dx < scale; dx++) {
+                                // Výpočet finální pozice pixelu
+                                let pixelX = baseX;
+                                let pixelY = baseY;
                                 
+                                if (rotation === 0) {
+                                    pixelX += dx;
+                                    pixelY += dy;
+                                } else if (rotation === 1) {
+                                    pixelX += dy;
+                                    pixelY += dx;
+                                } else if (rotation === 2) {
+                                    pixelX -= dx;
+                                    pixelY += dy;
+                                } else if (rotation === 3) {
+                                    pixelX -= dy;
+                                    pixelY -= dx;
+                                }
+                                
+                                // Kreslení pixelu, pokud je v rozsahu displeje
                                 if (pixelX >= 0 && pixelX < WIDTH && pixelY >= 0 && pixelY < HEIGHT) {
                                     drawPixel(pixelX, pixelY, color);
                                 }
@@ -820,8 +855,8 @@ namespace ST7735 {
             }
             
             // Posun na další znak
-            curX += dX;
-            curY += dY;
+            curX += deltaX;
+            curY += deltaY;
         }
     }
 }
