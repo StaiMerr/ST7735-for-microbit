@@ -764,7 +764,6 @@ namespace ST7735 {
         const lineHeight = 12 * size;
         
         // Odstranění bílých znaků a rozdělení na jednotlivé hex hodnoty
-        // Oprava: Místo RegExp použijeme metodu s řetězci
         let cleanString = "";
         for (let i = 0; i < hexString.length; i++) {
             // Přeskočíme bílé znaky (mezera, tab, nový řádek)
@@ -777,7 +776,8 @@ namespace ST7735 {
         // Převod na číselné hodnoty a odstranění neplatných hodnot
         const bytes: number[] = [];
         for (let i = 0; i < hexValues.length; i++) {
-            let value = hexValues[i].trim();
+            // OPRAVA: trim() nepřijímá žádné argumenty
+            let value = hexValues[i].trim(); // Odstraní bílé znaky na začátku a konci
             
             // Kontrola, zda hodnota začíná "0x" nebo "0X"
             if (value.length >= 2 && (value.substr(0, 2).toLowerCase() === "0x")) {
