@@ -866,7 +866,7 @@ namespace ST7735 {
         // Převod na číselné hodnoty a odstranění neplatných hodnot
         const bytes: number[] = [];
         for (let i = 0; i < hexValues.length; i++) {
-            let value = hexValues[i].trim();
+            let value = hexValues[i].trim(); // Odstraní bílé znaky na začátku a konci
             
             // Kontrola, zda hodnota začíná "0x" nebo "0X"
             if (value.length >= 2 && (value.substr(0, 2).toLowerCase() === "0x")) {
