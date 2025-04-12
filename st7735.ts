@@ -155,6 +155,19 @@ namespace ST7735 {
     }
 
     /**
+     * Vyčištění displeje (nastavení na černou nebo jinou barvu)
+     * @param color volitelná barva, výchozí je černá
+     */
+    //% block="vyčistit displej || barvou %color"
+    //% weight=98 group="Základní"
+    //% expandableArgumentMode="toggle"
+    export function clearDisplay(color?: number): void {
+        // Pokud color není definován, použij BLACK
+        const clr = (color === undefined) ? BLACK : color;
+        fillColor(clr);
+    }
+
+    /**
      * Vyplnění celého displeje jednou barvou
      * @param color barva v RGB565 formátu
      */
@@ -399,5 +412,91 @@ namespace ST7735 {
 
             pins.digitalWritePin(TFT_CS, 1)
         }
+    }
+
+    /**
+     * Vykreslení textu s nastavitelnou velikostí
+     * @param text text k vykreslení
+     * @param x x pozice
+     * @param y y pozice
+     * @param color barva textu
+     * @param size velikost textu (1-5)
+     * @param bgColor barva pozadí, výchozí je černá
+     */
+    //% block="vykreslit text %text na x %x y %y barva %color velikost %size || barva pozadí %bgColor"
+    //% weight=82 group="Text"
+    //% inlineInputMode=inline
+    //% x.min=0 x.max=124 y.min=0 y.max=155
+    //% size.min=1 size.max=5 size.defl=2
+    //% expandableArgumentMode="toggle"
+    export function drawScaledText(text: string, x: number, y: number, color: number, size: number, bgColor?: number): void {
+        // Pokud bgColor není definován, použij BLACK
+        const bg = (bgColor === undefined) ? BLACK : bgColor;
+        
+        // Kontrola velikosti
+        if (size < 1) size = 1;
+        if (size > 5) size = 5;
+
+        const textLength = text.length;
+        const charWidth = 3 * size;              // Šířka znaku po zvětšení
+        const charHeight = 5 * size;             // Výška znaku po zvětšení
+        const spaceBetweenChars = 1 * size;      // Mezera mezi znaky 
+        const totalWidth = textLength * (charWidth + spaceBetweenChars);
+
+        // Kontrola, zda se text vejde horizontálně
+        let startX = x;
+        if (startX + totalWidth > WIDTH) {
+            startX = WIDTH - totalWidth;
+            if (startX < 0) startX = 0; // Pokud je text příliš dlouhý, začne od 0
+        }
+
+        // Nejprve vyplníme pozadí textu pro čistý vzhled
+        fillRect(startX, y, totalWidth, charHeight, bg);
+
+        const hi = (color >> 8) & 0xFF;
+        const lo = color & 0xFF;
+
+        for (let charIdx = 0; charIdx < textLength; charIdx++) {
+            const charCode = text.charCodeAt(charIdx) - 32;  // 32 = mezera, první znak
+            if (charCode < 0 || charCode >= FONT.length / 5) continue;
+
+            const fontOffset = charCode * 5;
+            const charX = startX + charIdx * (charWidth + spaceBetweenChars);
+
+            // Pro každý řádek znaku
+            for (let row = 0; row < 5; row++) {
+                const fontRow = FONT[fontOffset + row];
+                const pixelY = y + row * size;
+
+                // Pro každý sloupec znaku
+                for (let col = 0; col < 3; col++) {
+                    const isPixelSet = fontRow & (1 << (2 - col));
+                    const pixelX = charX + col * size;
+
+                    // Vykreslit zvětšený pixel (size×size čtverec)
+                    if (isPixelSet) {
+                        fillRect(pixelX, pixelY, size, size, color);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Vykreslení velkého textu (2x velikost)
+     * @param text text k vykreslení
+     * @param x x pozice
+     * @param y y pozice
+     * @param color barva textu
+     * @param bgColor barva pozadí, výchozí je černá
+     */
+    //% block="vykreslit velký text %text na x %x y %y barva %color || barva pozadí %bgColor"
+    //% weight=81 group="Text"
+    //% inlineInputMode=inline
+    //% x.min=0 x.max=124 y.min=0 y.max=155
+    //% expandableArgumentMode="toggle"
+    export function drawBigText(text: string, x: number, y: number, color: number, bgColor?: number): void {
+        // Přednastavená velikost 2 - dobrý kompromis mezi velikostí a čitelností
+        drawScaledText(text, x, y, color, 2, bgColor);
     }
 }
