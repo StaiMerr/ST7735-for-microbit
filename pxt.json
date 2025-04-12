@@ -1,0 +1,21 @@
+{
+    "name": "st7735",
+    "version": "1.0.0",
+    "description": "ST7735 TFT displej pro micro:bit",
+    "dependencies": {
+        "core": "*"
+    },
+    "files": [
+        "README.md",
+        "st7735.ts"
+    ],
+    "testFiles": [],
+    "public": true,
+    "targetVersions": {
+        "target": "5.0.12",
+        "targetId": "microbit"
+    },
+    "supportedTargets": [
+        "microbit"
+    ]
+}
