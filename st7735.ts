@@ -729,4 +729,169 @@ namespace ST7735 {
         // Použití univerzální funkce s velikostí 2
         drawText(text, x, y, 2, rotation, color, bgColor);
     }
+
+    /**
+     * Zobrazení hexadecimálních dat na displeji
+     * @param hexString Řetězec s hexadecimálními hodnotami (např. "0x89, 0x50, 0x4E, 0x47")
+     * @param x X pozice začátku zobrazení
+     * @param y Y pozice začátku zobrazení
+     * @param bytesPerRow Počet bajtů na řádek
+     * @param color Barva textu
+     * @param bgColor Barva pozadí
+     * @param size Velikost textu (1-2)
+     */
+    //% block="hex data %hexString na x %x y %y || bytů/řádek %bytesPerRow barva %color pozadí %bgColor velikost %size"
+    //% weight=82 group="Text"
+    //% inlineInputMode=inline
+    //% x.min=0 x.max=120 y.min=0 y.max=150
+    //% bytesPerRow.min=1 bytesPerRow.max=8 bytesPerRow.defl=4
+    //% size.min=1 size.max=2 size.defl=1
+    //% expandableArgumentMode="toggle"
+    export function displayHexData(
+        hexString: string,
+        x: number,
+        y: number,
+        bytesPerRow: number = 4,
+        color: number = WHITE(),
+        bgColor: number = BLACK(),
+        size: number = 1
+    ): void {
+        // Ověření vstupů
+        bytesPerRow = Math.max(1, Math.min(8, bytesPerRow));
+        size = Math.max(1, Math.min(2, size));
+        
+        // Výška řádku v pixelech
+        const lineHeight = 12 * size;
+        
+        // Odstranění bílých znaků a rozdělení na jednotlivé hex hodnoty
+        const hexValues = hexString.replace(/\s+/g, '').split(',');
+        
+        // Převod na číselné hodnoty a odstranění neplatných hodnot
+        const bytes: number[] = [];
+        for (let i = 0; i < hexValues.length; i++) {
+            let value = hexValues[i].trim();
+            
+            // Kontrola, zda hodnota začíná "0x" nebo "0X"
+            if (value.startsWith("0x") || value.startsWith("0X")) {
+                // Převod z hex na číslo
+                const numValue = parseInt(value, 16);
+                if (!isNaN(numValue) && numValue >= 0 && numValue <= 255) {
+                    bytes.push(numValue);
+                }
+            }
+        }
+        
+        // Vymazání pozadí
+        const totalRows = Math.ceil(bytes.length / bytesPerRow);
+        const width = bytesPerRow * 6 * size; // Přibližná šířka jednoho bajtu v textu
+        fillRect(x, y, width * 5, totalRows * lineHeight, bgColor);
+        
+        // Zobrazení dat po řádcích
+        let currentX = x;
+        let currentY = y;
+        let counter = 0;
+        
+        for (let i = 0; i < bytes.length; i++) {
+            // Formátovaný výpis hex hodnoty (vždy dva znaky s předponou 0x)
+            const hexText = "0x" + ("0" + bytes[i].toString(16).toUpperCase()).slice(-2);
+            
+            // Vykreslení hex hodnoty
+            drawText(hexText, currentX, currentY, size, 0, color, bgColor);
+            
+            // Posun na další pozici
+            counter++;
+            if (counter >= bytesPerRow) {
+                // Přejdi na nový řádek
+                counter = 0;
+                currentX = x;
+                currentY += lineHeight;
+            } else {
+                // Pokračuj na stejném řádku
+                currentX += hexText.length * 8 * size;
+            }
+        }
+        
+        // Přidání informace o velikosti dat
+        currentY += lineHeight;
+        drawText("Celkem: " + bytes.length + " bajtů", x, currentY, size, 0, color, bgColor);
+    }
+
+    /**
+     * Zobrazení obrázku z hexadecimálních dat
+     * @param hexString Řetězec s hexadecimálními hodnotami raw obrazových dat
+     * @param x X pozice začátku zobrazení
+     * @param y Y pozice začátku zobrazení
+     * @param width Šířka obrázku v pixelech
+     * @param height Výška obrázku v pixelech
+     * @param format Formát obrázku (0: RGB565, 1: monochromatický)
+     */
+    //% block="zobrazit obrázek z hex dat %hexString na x %x y %y šířka %width výška %height || formát %format"
+    //% weight=81 group="Kreslení"
+    //% inlineInputMode=inline
+    //% x.min=0 x.max=127 y.min=0 y.max=159
+    //% width.min=1 width.max=128 height.min=1 height.max=160
+    //% format.min=0 format.max=1 format.defl=0
+    //% expandableArgumentMode="toggle"
+    export function displayImageFromHex(
+        hexString: string,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        format: number = 0
+    ): void {
+        // Odstranění bílých znaků a rozdělení na jednotlivé hex hodnoty
+        const hexValues = hexString.replace(/\s+/g, '').split(',');
+        
+        // Převod na číselné hodnoty a odstranění neplatných hodnot
+        const bytes: number[] = [];
+        for (let i = 0; i < hexValues.length; i++) {
+            let value = hexValues[i].trim();
+            
+            // Kontrola, zda hodnota začíná "0x" nebo "0X"
+            if (value.startsWith("0x") || value.startsWith("0X")) {
+                // Převod z hex na číslo
+                const numValue = parseInt(value, 16);
+                if (!isNaN(numValue) && numValue >= 0 && numValue <= 255) {
+                    bytes.push(numValue);
+                }
+            }
+        }
+        
+        // Kontrola rozměrů obrázku
+        if (x + width > WIDTH) width = WIDTH - x;
+        if (y + height > HEIGHT) height = HEIGHT - y;
+        
+        // Nastavení adresního okna pro obrázek
+        setWindow(x, y, x + width - 1, y + height - 1);
+        
+        // Vykreslení obrázku podle formátu
+        pins.digitalWritePin(TFT_CS, 0);
+        pins.digitalWritePin(TFT_RS, 1);
+        
+        if (format === 0) {
+            // RGB565 formát - každý pixel je 2 bajty
+            for (let i = 0; i < bytes.length; i += 2) {
+                if (i + 1 < bytes.length) {
+                    pins.spiWrite(bytes[i]);      // Vyšší bajt
+                    pins.spiWrite(bytes[i + 1]);  // Nižší bajt
+                }
+            }
+        } else {
+            // Monochromatický formát - každý bajt obsahuje 8 pixelů (1 bit na pixel)
+            for (let i = 0; i < bytes.length; i++) {
+                const byte = bytes[i];
+                // Každý bit vykreslíme jako černý nebo bílý pixel
+                for (let bit = 7; bit >= 0; bit--) {
+                    const color = (byte & (1 << bit)) ? WHITE() : BLACK();
+                    const hi = (color >> 8) & 0xFF;
+                    const lo = color & 0xFF;
+                    pins.spiWrite(hi);
+                    pins.spiWrite(lo);
+                }
+            }
+        }
+        
+        pins.digitalWritePin(TFT_CS, 1);
+    }
 }
