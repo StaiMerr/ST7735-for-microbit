@@ -776,13 +776,32 @@ namespace ST7735 {
         // Převod na číselné hodnoty a odstranění neplatných hodnot
         const bytes: number[] = [];
         for (let i = 0; i < hexValues.length; i++) {
-            // OPRAVA: trim() nepřijímá žádné argumenty
-            let value = hexValues[i].trim(); // Odstraní bílé znaky na začátku a konci
+            let value = hexValues[i];
+            let trimmedValue = "";
+            
+            // Vlastní implementace trim()
+            let startIndex = 0;
+            while (startIndex < value.length && 
+                   (value[startIndex] === ' ' || value[startIndex] === '\t' || 
+                    value[startIndex] === '\n' || value[startIndex] === '\r')) {
+                startIndex++;
+            }
+            
+            let endIndex = value.length - 1;
+            while (endIndex >= 0 && 
+                   (value[endIndex] === ' ' || value[endIndex] === '\t' || 
+                    value[endIndex] === '\n' || value[endIndex] === '\r')) {
+                endIndex--;
+            }
+            
+            for (let j = startIndex; j <= endIndex; j++) {
+                trimmedValue += value[j];
+            }
             
             // Kontrola, zda hodnota začíná "0x" nebo "0X"
-            if (value.length >= 2 && (value.substr(0, 2).toLowerCase() === "0x")) {
+            if (trimmedValue.length >= 2 && (trimmedValue.substr(0, 2).toLowerCase() === "0x")) {
                 // Převod z hex na číslo
-                const numValue = parseInt(value, 16);
+                const numValue = parseInt(trimmedValue);
                 if (!isNaN(numValue) && numValue >= 0 && numValue <= 255) {
                     bytes.push(numValue);
                 }
@@ -800,11 +819,8 @@ namespace ST7735 {
         let counter = 0;
         
         for (let i = 0; i < bytes.length; i++) {
-            // Formátovaný výpis hex hodnoty (vždy dva znaky s předponou 0x)
-            let hexValue = bytes[i].toString(16).toUpperCase();
-            if (hexValue.length < 2) {
-                hexValue = "0" + hexValue;
-            }
+            // OPRAVA: Vlastní implementace toString(16)
+            let hexValue = byteToHex(bytes[i]);
             const hexText = "0x" + hexValue;
             
             // Vykreslení hex hodnoty
@@ -826,6 +842,14 @@ namespace ST7735 {
         // Přidání informace o velikosti dat
         currentY += lineHeight;
         drawText("Celkem: " + bytes.length + " bajtů", x, currentY, size, 0, color, bgColor);
+    }
+
+    // Pomocná funkce pro převod bytu na hexadecimální řetězec
+    function byteToHex(value: number): string {
+        const hexChars = "0123456789ABCDEF";
+        const highNibble = (value >> 4) & 0xF;  // Horní 4 bity
+        const lowNibble = value & 0xF;          // Dolní 4 bity
+        return hexChars[highNibble] + hexChars[lowNibble];
     }
 
     /**
