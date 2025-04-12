@@ -21,6 +21,9 @@ namespace ST7735 {
     const ST7735_MADCTL = 0x36
     const ST7735_COLMOD = 0x3A
 
+    // Globální proměnná pro uchování aktuální rotace displeje
+    let currentRotation = 0;
+
     // Definice barev (jako funkce, aby nedocházelo k chybám)
     //% block="černá"
     //% group="Barvy" weight=90
@@ -264,6 +267,7 @@ namespace ST7735 {
     //% weight=95 group="Základní"
     //% rotation.min=0 rotation.max=3
     export function setRotation(rotation: number): void {
+        currentRotation = rotation; // Uložení aktuální rotace
         cmd(ST7735_MADCTL);
         
         // Různé MADCTL hodnoty pro různé rotace
@@ -417,140 +421,6 @@ namespace ST7735 {
     ];
 
     /**
-     * Vykreslení textu s fontem 6x8
-     * @param text text k vykreslení
-     * @param x x pozice
-     * @param y y pozice
-     * @param color barva textu
-     * @param bgColor barva pozadí, výchozí je černá
-     */
-    //% block="vykreslit text (6x8) %text na x %x y %y barva %color || barva pozadí %bgColor"
-    //% weight=85 group="Text"
-    //% inlineInputMode=inline
-    //% x.min=0 x.max=122 y.min=0 y.max=152
-    //% expandableArgumentMode="toggle"
-    export function drawText6x8(text: string, x: number, y: number, color: number, bgColor?: number): void {
-        // Pokud bgColor není definován, použij BLACK
-        const bg = (bgColor === undefined) ? BLACK() : color;
-
-        const textLength = text.length;
-        const charWidth = 6;
-        const charHeight = 8;
-        const totalWidth = textLength * charWidth;
-
-        // Kontrola, zda se text vejde horizontálně
-        let startX = x;
-        if (startX + totalWidth > WIDTH) {
-            startX = WIDTH - totalWidth;
-            if (startX < 0) startX = 0; // Pokud je text příliš dlouhý, začne od 0
-        }
-
-        // Nejprve vyplníme pozadí textu pro čistý vzhled (pokud je barva pozadí odlišná od barvy textu)
-        if (bg !== color) {
-            fillRect(startX, y, totalWidth, charHeight, bg);
-        }
-
-        // Pro každý znak
-        for (let charIdx = 0; charIdx < textLength; charIdx++) {
-            const charCode = text.charCodeAt(charIdx) - 32;  // 32 = mezera, první znak
-            if (charCode < 0 || charCode >= FONT_6X8.length) continue;
-
-            const fontData = FONT_6X8[charCode];
-            const charX = startX + charIdx * charWidth;
-
-            // Pro každý řádek znaku
-            for (let row = 0; row < 8; row++) {
-                const rowBits = fontData[row];
-                const pixelY = y + row;
-
-                // Pro každý sloupec znaku
-                for (let col = 0; col < 6; col++) {
-                    // Kontrola, zda je pixel nastaven (bit na pozici col)
-                    const isPixelSet = (rowBits & (1 << (5 - col))) !== 0;
-                    const pixelX = charX + col;
-
-                    // Vykreslit pixel
-                    if (isPixelSet) {
-                        drawPixel(pixelX, pixelY, color);
-                    } else if (bg !== color) {
-                        // Vykreslit pozadí pouze pokud je odlišné od barvy textu
-                        drawPixel(pixelX, pixelY, bg);
-                    }
-                }
-            }
-        }
-    }
-
-    // Zjednodušené 3x5 písmena pro ultra-rychlé vykreslování textu
-    // Každé písmeno je definováno jako bitmapa 3x5 pixelů v jediném bytu
-    const FONT: number[] = [
-        0x00, 0x00, 0x00, 0x00, 0x00, // mezera
-        0x17, 0x00, 0x00, 0x00, 0x00, // !
-        0x03, 0x00, 0x03, 0x00, 0x00, // "
-        0x1F, 0x0A, 0x1F, 0x0A, 0x1F, // #
-        0x0A, 0x1F, 0x1F, 0x0A, 0x00, // $
-        0x09, 0x04, 0x0A, 0x00, 0x00, // %
-        0x0E, 0x0A, 0x0E, 0x0A, 0x0C, // &
-        0x03, 0x00, 0x00, 0x00, 0x00, // '
-        0x0E, 0x11, 0x00, 0x00, 0x00, // (
-        0x11, 0x0E, 0x00, 0x00, 0x00, // )
-        0x05, 0x02, 0x05, 0x00, 0x00, // *
-        0x04, 0x0E, 0x04, 0x00, 0x00, // +
-        0x10, 0x08, 0x00, 0x00, 0x00, // ,
-        0x04, 0x04, 0x04, 0x00, 0x00, // -
-        0x10, 0x00, 0x00, 0x00, 0x00, // .
-        0x18, 0x04, 0x03, 0x00, 0x00, // /
-        0x1F, 0x11, 0x1F, 0x00, 0x00, // 0
-        0x12, 0x1F, 0x10, 0x00, 0x00, // 1
-        0x1D, 0x15, 0x17, 0x00, 0x00, // 2
-        0x11, 0x15, 0x1F, 0x00, 0x00, // 3
-        0x07, 0x04, 0x1F, 0x00, 0x00, // 4
-        0x17, 0x15, 0x1D, 0x00, 0x00, // 5
-        0x1F, 0x15, 0x1D, 0x00, 0x00, // 6
-        0x01, 0x01, 0x1F, 0x00, 0x00, // 7
-        0x1F, 0x15, 0x1F, 0x00, 0x00, // 8
-        0x17, 0x15, 0x1F, 0x00, 0x00, // 9
-        0x0A, 0x00, 0x00, 0x00, 0x00, // :
-        0x10, 0x0A, 0x00, 0x00, 0x00, // ;
-        0x04, 0x0A, 0x11, 0x00, 0x00, // <
-        0x0A, 0x0A, 0x0A, 0x00, 0x00, // =
-        0x11, 0x0A, 0x04, 0x00, 0x00, // >
-        0x01, 0x15, 0x07, 0x00, 0x00, // ?
-        0x1F, 0x11, 0x17, 0x15, 0x17, // @
-        0x1F, 0x05, 0x1F, 0x00, 0x00, // A
-        0x1F, 0x15, 0x0A, 0x00, 0x00, // B
-        0x1F, 0x11, 0x11, 0x00, 0x00, // C
-        0x1F, 0x11, 0x0E, 0x00, 0x00, // D
-        0x1F, 0x15, 0x15, 0x00, 0x00, // E
-        0x1F, 0x05, 0x05, 0x00, 0x00, // F
-        0x1F, 0x11, 0x1D, 0x00, 0x00, // G
-        0x1F, 0x04, 0x1F, 0x00, 0x00, // H
-        0x11, 0x1F, 0x11, 0x00, 0x00, // I
-        0x08, 0x10, 0x0F, 0x00, 0x00, // J
-        0x1F, 0x04, 0x1B, 0x00, 0x00, // K
-        0x1F, 0x10, 0x10, 0x00, 0x00, // L
-        0x1F, 0x02, 0x1F, 0x00, 0x00, // M
-        0x1F, 0x01, 0x1F, 0x00, 0x00, // N
-        0x1F, 0x11, 0x1F, 0x00, 0x00, // O
-        0x1F, 0x05, 0x07, 0x00, 0x00, // P
-        0x0F, 0x09, 0x1F, 0x00, 0x00, // Q
-        0x1F, 0x05, 0x1B, 0x00, 0x00, // R
-        0x17, 0x15, 0x1D, 0x00, 0x00, // S
-        0x01, 0x1F, 0x01, 0x00, 0x00, // T
-        0x1F, 0x10, 0x1F, 0x00, 0x00, // U
-        0x0F, 0x10, 0x0F, 0x00, 0x00, // V
-        0x1F, 0x08, 0x1F, 0x00, 0x00, // W
-        0x1B, 0x04, 0x1B, 0x00, 0x00, // X
-        0x07, 0x18, 0x07, 0x00, 0x00, // Y
-        0x19, 0x15, 0x13, 0x00, 0x00, // Z
-        0x1F, 0x11, 0x00, 0x00, 0x00, // [
-        0x03, 0x04, 0x18, 0x00, 0x00, // \
-        0x11, 0x1F, 0x00, 0x00, 0x00, // ]
-        0x02, 0x01, 0x02, 0x00, 0x00, // ^
-        0x10, 0x10, 0x10, 0x00, 0x00  // _
-    ];
-
-    /**
      * Vykreslení textu
      * @param text text k vykreslení
      * @param x x pozice
@@ -559,142 +429,142 @@ namespace ST7735 {
      * @param bgColor barva pozadí, výchozí je černá
      */
     //% block="vykreslit text %text na x %x y %y barva %color || barva pozadí %bgColor"
-    //% weight=80 group="Text"
+    //% weight=85 group="Text"
     //% inlineInputMode=inline
-    //% x.min=0 x.max=124 y.min=0 y.max=155
+    //% x.min=0 x.max=122 y.min=0 y.max=152
     //% expandableArgumentMode="toggle"
     export function drawText(text: string, x: number, y: number, color: number, bgColor?: number): void {
         // Pokud bgColor není definován, použij BLACK
         const bg = (bgColor === undefined) ? BLACK() : bgColor;
 
-        const textLength = text.length
-        const totalWidth = textLength * 4  // 3 pixely na znak + 1 pixel mezera
-
-        if (x + totalWidth > WIDTH) {
-            x = WIDTH - totalWidth  // Zajistí, že se text vejde na obrazovku
-        }
-
-        // Nejprve vyplníme pozadí textu pro čistý vzhled
-        fillRect(x, y, totalWidth, 5, bg)
-
-        const hi = (color >> 8) & 0xFF
-        const lo = color & 0xFF
-
-        for (let charIdx = 0; charIdx < textLength; charIdx++) {
-            const charCode = text.charCodeAt(charIdx) - 32  // 32 = mezera, první znak
-            if (charCode < 0 || charCode >= FONT.length / 5) continue
-
-            const fontOffset = charCode * 5
-            const posX = x + charIdx * 4  // 4 pixely na znak včetně mezery
-
-            // Nastavení okna pro tento znak
-            setWindow(posX, y, posX + 2, y + 4)
-
-            pins.digitalWritePin(TFT_CS, 0)
-            pins.digitalWritePin(TFT_RS, 1)
-
-            // Vykreslení znaku pixel po pixelu
-            for (let row = 0; row < 5; row++) {
-                const fontRow = FONT[fontOffset + row]
-
-                for (let col = 0; col < 3; col++) {
-                    if (fontRow & (1 << (2 - col))) {
-                        pins.spiWrite(hi)
-                        pins.spiWrite(lo)
-                    } else {
-                        pins.spiWrite(bg >> 8)
-                        pins.spiWrite(bg & 0xFF)
-                    }
-                }
-            }
-
-            pins.digitalWritePin(TFT_CS, 1)
-        }
-    }
-
-    /**
-     * Vykreslení textu s nastavitelnou velikostí
-     * @param text text k vykreslení
-     * @param x x pozice
-     * @param y y pozice
-     * @param color barva textu
-     * @param size velikost textu (1-5)
-     * @param bgColor barva pozadí, výchozí je černá
-     */
-    //% block="vykreslit text %text na x %x y %y barva %color velikost %size || barva pozadí %bgColor"
-    //% weight=82 group="Text"
-    //% inlineInputMode=inline
-    //% x.min=0 x.max=124 y.min=0 y.max=155
-    //% size.min=1 size.max=5 size.defl=2
-    //% expandableArgumentMode="toggle"
-    export function drawScaledText(text: string, x: number, y: number, color: number, size: number, bgColor?: number): void {
-        // Pokud bgColor není definován, použij BLACK
-        const bg = (bgColor === undefined) ? BLACK() : bgColor;
-        
-        // Kontrola velikosti
-        if (size < 1) size = 1;
-        if (size > 5) size = 5;
-
         const textLength = text.length;
-        const charWidth = 3 * size;              // Šířka znaku po zvětšení
-        const charHeight = 5 * size;             // Výška znaku po zvětšení
-        const spaceBetweenChars = 1 * size;      // Mezera mezi znaky 
-        const totalWidth = textLength * (charWidth + spaceBetweenChars);
-
-        // Kontrola, zda se text vejde horizontálně
-        let startX = x;
-        if (startX + totalWidth > WIDTH) {
-            startX = WIDTH - totalWidth;
-            if (startX < 0) startX = 0; // Pokud je text příliš dlouhý, začne od 0
+        const charWidth = 6;
+        const charHeight = 8;
+        
+        // Nastavení směru vykreslování podle rotace
+        let posX = x;
+        let posY = y;
+        let dX = 0;
+        let dY = 0;
+        
+        // Určení směru vykreslování podle rotace
+        switch (currentRotation) {
+            case 0: // 0 stupňů - normální zleva doprava
+                dX = charWidth;
+                dY = 0;
+                // Kontrola zda se text vejde na displej
+                if (x + textLength * charWidth > WIDTH) {
+                    posX = WIDTH - textLength * charWidth;
+                    if (posX < 0) posX = 0;
+                }
+                // Vyplnění pozadí
+                if (bg !== color) {
+                    fillRect(posX, posY, textLength * charWidth, charHeight, bg);
+                }
+                break;
+                
+            case 1: // 90 stupňů - shora dolů
+                dX = 0;
+                dY = charWidth;
+                // Kontrola zda se text vejde na displej
+                if (y + textLength * charWidth > HEIGHT) {
+                    posY = HEIGHT - textLength * charWidth;
+                    if (posY < 0) posY = 0;
+                }
+                // Vyplnění pozadí
+                if (bg !== color) {
+                    fillRect(posX, posY, charHeight, textLength * charWidth, bg);
+                }
+                break;
+                
+            case 2: // 180 stupňů - zprava doleva
+                dX = -charWidth;
+                dY = 0;
+                // Posunutí počáteční pozice vpravo pro správné vykreslení
+                posX = x + (textLength - 1) * charWidth;
+                // Kontrola zda se text vejde na displej
+                if (posX >= WIDTH) {
+                    posX = WIDTH - 1;
+                }
+                if (posX - (textLength - 1) * charWidth < 0) {
+                    posX = (textLength - 1) * charWidth;
+                }
+                // Vyplnění pozadí
+                if (bg !== color) {
+                    fillRect(posX - (textLength - 1) * charWidth, posY, textLength * charWidth, charHeight, bg);
+                }
+                break;
+                
+            case 3: // 270 stupňů - zdola nahoru
+                dX = 0;
+                dY = -charWidth;
+                // Posunutí počáteční pozice dolů pro správné vykreslení
+                posY = y + (textLength - 1) * charWidth;
+                // Kontrola zda se text vejde na displej
+                if (posY >= HEIGHT) {
+                    posY = HEIGHT - 1;
+                }
+                if (posY - (textLength - 1) * charWidth < 0) {
+                    posY = (textLength - 1) * charWidth;
+                }
+                // Vyplnění pozadí
+                if (bg !== color) {
+                    fillRect(posX, posY - (textLength - 1) * charWidth, charHeight, textLength * charWidth, bg);
+                }
+                break;
         }
 
-        // Nejprve vyplníme pozadí textu pro čistý vzhled
-        fillRect(startX, y, totalWidth, charHeight, bg);
-
-        const hi = (color >> 8) & 0xFF;
-        const lo = (color & 0xFF);
-
+        // Pro každý znak
         for (let charIdx = 0; charIdx < textLength; charIdx++) {
             const charCode = text.charCodeAt(charIdx) - 32;  // 32 = mezera, první znak
-            if (charCode < 0 || charCode >= FONT.length / 5) continue;
+            if (charCode < 0 || charCode >= FONT_6X8.length) continue;
 
-            const fontOffset = charCode * 5;
-            const charX = startX + charIdx * (charWidth + spaceBetweenChars);
-
+            const fontData = FONT_6X8[charCode];
+            
             // Pro každý řádek znaku
-            for (let row = 0; row < 5; row++) {
-                const fontRow = FONT[fontOffset + row];
-                const pixelY = y + row * size;
-
+            for (let row = 0; row < 8; row++) {
+                const rowBits = fontData[row];
+                
                 // Pro každý sloupec znaku
-                for (let col = 0; col < 3; col++) {
-                    const isPixelSet = fontRow & (1 << (2 - col));
-                    const pixelX = charX + col * size;
-
-                    // Vykreslit zvětšený pixel (size×size čtverec)
+                for (let col = 0; col < 6; col++) {
+                    // Kontrola, zda je pixel nastaven (bit na pozici col)
+                    const isPixelSet = (rowBits & (1 << (5 - col))) !== 0;
+                    
+                    // Výpočet pozice pixelu podle rotace
+                    let pixelX = 0;
+                    let pixelY = 0;
+                    
+                    switch (currentRotation) {
+                        case 0: // 0 stupňů
+                            pixelX = posX + col;
+                            pixelY = posY + row;
+                            break;
+                        case 1: // 90 stupňů
+                            pixelX = posX + row;
+                            pixelY = posY + col;
+                            break;
+                        case 2: // 180 stupňů
+                            pixelX = posX - col;
+                            pixelY = posY + (7 - row);
+                            break;
+                        case 3: // 270 stupňů
+                            pixelX = posX + (7 - row);
+                            pixelY = posY - col;
+                            break;
+                    }
+                    
+                    // Vykreslit pixel pokud je nastaven, nebo pozadí pokud není
                     if (isPixelSet) {
-                        fillRect(pixelX, pixelY, size, size, color);
+                        drawPixel(pixelX, pixelY, color);
+                    } else if (bg !== color) {
+                        drawPixel(pixelX, pixelY, bg);
                     }
                 }
             }
+            
+            // Posun na další znak
+            posX += dX;
+            posY += dY;
         }
-    }
-
-    /**
-     * Vykreslení velkého textu (2x velikost)
-     * @param text text k vykreslení
-     * @param x x pozice
-     * @param y y pozice
-     * @param color barva textu
-     * @param bgColor barva pozadí, výchozí je černá
-     */
-    //% block="vykreslit velký text %text na x %x y %y barva %color || barva pozadí %bgColor"
-    //% weight=81 group="Text"
-    //% inlineInputMode=inline
-    //% x.min=0 x.max=124 y.min=0 y.max=155
-    //% expandableArgumentMode="toggle"
-    export function drawBigText(text: string, x: number, y: number, color: number, bgColor?: number): void {
-        // Přednastavená velikost 2 - dobrý kompromis mezi velikostí a čitelností
-        drawScaledText(text, x, y, color, 2, bgColor);
     }
 }
