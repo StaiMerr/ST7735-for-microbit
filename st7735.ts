@@ -21,38 +21,38 @@ namespace ST7735 {
     const ST7735_MADCTL = 0x36
     const ST7735_COLMOD = 0x3A
 
-    // Barvy (RGB565 formát)
+    // Definice barev (jako funkce, aby nedocházelo k chybám)
     //% block="černá"
     //% group="Barvy" weight=90
-    export const BLACK = 0x0000
-    
+    export function BLACK(): number { return 0x0000; }
+
     //% block="červená"
     //% group="Barvy" weight=89
-    export const RED = 0xF800
-    
+    export function RED(): number { return 0xF800; }
+
     //% block="zelená"
     //% group="Barvy" weight=88
-    export const GREEN = 0x07E0
-    
+    export function GREEN(): number { return 0x07E0; }
+
     //% block="modrá"
     //% group="Barvy" weight=87
-    export const BLUE = 0x001F
-    
+    export function BLUE(): number { return 0x001F; }
+
     //% block="bílá"
     //% group="Barvy" weight=86
-    export const WHITE = 0xFFFF
-    
+    export function WHITE(): number { return 0xFFFF; }
+
     //% block="žlutá"
     //% group="Barvy" weight=85
-    export const YELLOW = 0xFFE0
-    
+    export function YELLOW(): number { return 0xFFE0; }
+
     //% block="purpurová"
     //% group="Barvy" weight=84
-    export const MAGENTA = 0xF81F
-    
+    export function MAGENTA(): number { return 0xF81F; }
+
     //% block="azurová"
     //% group="Barvy" weight=83
-    export const CYAN = 0x07FF
+    export function CYAN(): number { return 0x07FF; }
 
     /**
      * Vytvoření RGB barvy
@@ -163,7 +163,7 @@ namespace ST7735 {
     //% expandableArgumentMode="toggle"
     export function clearDisplay(color?: number): void {
         // Pokud color není definován, použij BLACK
-        const clr = (color === undefined) ? BLACK : color;
+        const clr = (color === undefined) ? BLACK() : color;
         fillColor(clr);
     }
 
@@ -283,6 +283,204 @@ namespace ST7735 {
         }
     }
 
+    // Font 6x8 pixelů (každý znak definován jako 8 bajtů - jeden pro každý řádek)
+    // První bajt je horní řádek, např. 0x3C znamená "00111100"
+    const FONT_6X8: number[][] = [
+        // Mezera (32)
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+        // ! (33)
+        [0x00, 0x00, 0x06, 0x5F, 0x5F, 0x06, 0x00, 0x00],
+        // " (34)
+        [0x00, 0x03, 0x03, 0x00, 0x03, 0x03, 0x00, 0x00],
+        // # (35)
+        [0x14, 0x7F, 0x7F, 0x14, 0x7F, 0x7F, 0x14, 0x00],
+        // $ (36)
+        [0x24, 0x2E, 0x6B, 0x6B, 0x3A, 0x12, 0x00, 0x00],
+        // % (37)
+        [0x46, 0x66, 0x30, 0x18, 0x0C, 0x66, 0x62, 0x00],
+        // & (38)
+        [0x30, 0x7A, 0x4F, 0x5D, 0x37, 0x7A, 0x48, 0x00],
+        // ' (39)
+        [0x04, 0x07, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00],
+        // ( (40)
+        [0x00, 0x1C, 0x3E, 0x63, 0x41, 0x00, 0x00, 0x00],
+        // ) (41)
+        [0x00, 0x41, 0x63, 0x3E, 0x1C, 0x00, 0x00, 0x00],
+        // * (42)
+        [0x08, 0x2A, 0x3E, 0x1C, 0x1C, 0x3E, 0x2A, 0x08],
+        // + (43)
+        [0x08, 0x08, 0x3E, 0x3E, 0x08, 0x08, 0x00, 0x00],
+        // , (44)
+        [0x00, 0x80, 0xE0, 0x60, 0x00, 0x00, 0x00, 0x00],
+        // - (45)
+        [0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x00, 0x00],
+        // . (46)
+        [0x00, 0x00, 0x60, 0x60, 0x00, 0x00, 0x00, 0x00],
+        // / (47)
+        [0x60, 0x30, 0x18, 0x0C, 0x06, 0x03, 0x01, 0x00],
+        // 0 (48)
+        [0x3E, 0x7F, 0x71, 0x59, 0x4D, 0x7F, 0x3E, 0x00],
+        // 1 (49)
+        [0x40, 0x42, 0x7F, 0x7F, 0x40, 0x40, 0x00, 0x00],
+        // 2 (50)
+        [0x62, 0x73, 0x59, 0x49, 0x6F, 0x66, 0x00, 0x00],
+        // 3 (51)
+        [0x22, 0x63, 0x49, 0x49, 0x7F, 0x36, 0x00, 0x00],
+        // 4 (52)
+        [0x18, 0x1C, 0x16, 0x53, 0x7F, 0x7F, 0x50, 0x00],
+        // 5 (53)
+        [0x27, 0x67, 0x45, 0x45, 0x7D, 0x39, 0x00, 0x00],
+        // 6 (54)
+        [0x3C, 0x7E, 0x4B, 0x49, 0x79, 0x30, 0x00, 0x00],
+        // 7 (55)
+        [0x03, 0x03, 0x71, 0x79, 0x0F, 0x07, 0x00, 0x00],
+        // 8 (56)
+        [0x36, 0x7F, 0x49, 0x49, 0x7F, 0x36, 0x00, 0x00],
+        // 9 (57)
+        [0x06, 0x4F, 0x49, 0x69, 0x3F, 0x1E, 0x00, 0x00],
+        // : (58)
+        [0x00, 0x00, 0x66, 0x66, 0x00, 0x00, 0x00, 0x00],
+        // ; (59)
+        [0x00, 0x80, 0xE6, 0x66, 0x00, 0x00, 0x00, 0x00],
+        // < (60)
+        [0x08, 0x1C, 0x36, 0x63, 0x41, 0x00, 0x00, 0x00],
+        // = (61)
+        [0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x00, 0x00],
+        // > (62)
+        [0x00, 0x41, 0x63, 0x36, 0x1C, 0x08, 0x00, 0x00],
+        // ? (63)
+        [0x02, 0x03, 0x51, 0x59, 0x0F, 0x06, 0x00, 0x00],
+        // @ (64)
+        [0x3E, 0x7F, 0x41, 0x5D, 0x5D, 0x1F, 0x1E, 0x00],
+        // A (65)
+        [0x7C, 0x7E, 0x13, 0x13, 0x7E, 0x7C, 0x00, 0x00],
+        // B (66)
+        [0x41, 0x7F, 0x7F, 0x49, 0x49, 0x7F, 0x36, 0x00],
+        // C (67)
+        [0x1C, 0x3E, 0x63, 0x41, 0x41, 0x63, 0x22, 0x00],
+        // D (68)
+        [0x41, 0x7F, 0x7F, 0x41, 0x63, 0x3E, 0x1C, 0x00],
+        // E (69)
+        [0x41, 0x7F, 0x7F, 0x49, 0x5D, 0x41, 0x63, 0x00],
+        // F (70)
+        [0x41, 0x7F, 0x7F, 0x49, 0x1D, 0x01, 0x03, 0x00],
+        // G (71)
+        [0x1C, 0x3E, 0x63, 0x41, 0x51, 0x73, 0x72, 0x00],
+        // H (72)
+        [0x7F, 0x7F, 0x08, 0x08, 0x7F, 0x7F, 0x00, 0x00],
+        // I (73)
+        [0x00, 0x41, 0x7F, 0x7F, 0x41, 0x00, 0x00, 0x00],
+        // J (74)
+        [0x30, 0x70, 0x40, 0x41, 0x7F, 0x3F, 0x01, 0x00],
+        // K (75)
+        [0x41, 0x7F, 0x7F, 0x08, 0x1C, 0x77, 0x63, 0x00],
+        // L (76)
+        [0x41, 0x7F, 0x7F, 0x41, 0x40, 0x60, 0x70, 0x00],
+        // M (77)
+        [0x7F, 0x7F, 0x0E, 0x1C, 0x0E, 0x7F, 0x7F, 0x00],
+        // N (78)
+        [0x7F, 0x7F, 0x06, 0x0C, 0x18, 0x7F, 0x7F, 0x00],
+        // O (79)
+        [0x1C, 0x3E, 0x63, 0x41, 0x63, 0x3E, 0x1C, 0x00],
+        // P (80)
+        [0x41, 0x7F, 0x7F, 0x49, 0x09, 0x0F, 0x06, 0x00],
+        // Q (81)
+        [0x1E, 0x3F, 0x21, 0x71, 0x7F, 0x5E, 0x00, 0x00],
+        // R (82)
+        [0x41, 0x7F, 0x7F, 0x09, 0x19, 0x7F, 0x66, 0x00],
+        // S (83)
+        [0x26, 0x6F, 0x4D, 0x59, 0x73, 0x32, 0x00, 0x00],
+        // T (84)
+        [0x03, 0x41, 0x7F, 0x7F, 0x41, 0x03, 0x00, 0x00],
+        // U (85)
+        [0x7F, 0x7F, 0x40, 0x40, 0x7F, 0x7F, 0x00, 0x00],
+        // V (86)
+        [0x1F, 0x3F, 0x60, 0x60, 0x3F, 0x1F, 0x00, 0x00],
+        // W (87)
+        [0x7F, 0x7F, 0x30, 0x18, 0x30, 0x7F, 0x7F, 0x00],
+        // X (88)
+        [0x43, 0x67, 0x3C, 0x18, 0x3C, 0x67, 0x43, 0x00],
+        // Y (89)
+        [0x07, 0x4F, 0x78, 0x78, 0x4F, 0x07, 0x00, 0x00],
+        // Z (90)
+        [0x47, 0x63, 0x71, 0x59, 0x4D, 0x67, 0x73, 0x00],
+        // [ (91)
+        [0x00, 0x7F, 0x7F, 0x41, 0x41, 0x00, 0x00, 0x00],
+        // \ (92)
+        [0x01, 0x03, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x00],
+        // ] (93)
+        [0x00, 0x41, 0x41, 0x7F, 0x7F, 0x00, 0x00, 0x00],
+        // ^ (94)
+        [0x08, 0x0C, 0x06, 0x03, 0x06, 0x0C, 0x08, 0x00],
+        // _ (95)
+        [0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80]
+    ];
+
+    /**
+     * Vykreslení textu s fontem 6x8
+     * @param text text k vykreslení
+     * @param x x pozice
+     * @param y y pozice
+     * @param color barva textu
+     * @param bgColor barva pozadí, výchozí je černá
+     */
+    //% block="vykreslit text (6x8) %text na x %x y %y barva %color || barva pozadí %bgColor"
+    //% weight=85 group="Text"
+    //% inlineInputMode=inline
+    //% x.min=0 x.max=122 y.min=0 y.max=152
+    //% expandableArgumentMode="toggle"
+    export function drawText6x8(text: string, x: number, y: number, color: number, bgColor?: number): void {
+        // Pokud bgColor není definován, použij BLACK
+        const bg = (bgColor === undefined) ? BLACK() : color;
+
+        const textLength = text.length;
+        const charWidth = 6;
+        const charHeight = 8;
+        const totalWidth = textLength * charWidth;
+
+        // Kontrola, zda se text vejde horizontálně
+        let startX = x;
+        if (startX + totalWidth > WIDTH) {
+            startX = WIDTH - totalWidth;
+            if (startX < 0) startX = 0; // Pokud je text příliš dlouhý, začne od 0
+        }
+
+        // Nejprve vyplníme pozadí textu pro čistý vzhled (pokud je barva pozadí odlišná od barvy textu)
+        if (bg !== color) {
+            fillRect(startX, y, totalWidth, charHeight, bg);
+        }
+
+        // Pro každý znak
+        for (let charIdx = 0; charIdx < textLength; charIdx++) {
+            const charCode = text.charCodeAt(charIdx) - 32;  // 32 = mezera, první znak
+            if (charCode < 0 || charCode >= FONT_6X8.length) continue;
+
+            const fontData = FONT_6X8[charCode];
+            const charX = startX + charIdx * charWidth;
+
+            // Pro každý řádek znaku
+            for (let row = 0; row < 8; row++) {
+                const rowBits = fontData[row];
+                const pixelY = y + row;
+
+                // Pro každý sloupec znaku
+                for (let col = 0; col < 6; col++) {
+                    // Kontrola, zda je pixel nastaven (bit na pozici col)
+                    const isPixelSet = (rowBits & (1 << (5 - col))) !== 0;
+                    const pixelX = charX + col;
+
+                    // Vykreslit pixel
+                    if (isPixelSet) {
+                        drawPixel(pixelX, pixelY, color);
+                    } else if (bg !== color) {
+                        // Vykreslit pozadí pouze pokud je odlišné od barvy textu
+                        drawPixel(pixelX, pixelY, bg);
+                    }
+                }
+            }
+        }
+    }
+
     // Zjednodušené 3x5 písmena pro ultra-rychlé vykreslování textu
     // Každé písmeno je definováno jako bitmapa 3x5 pixelů v jediném bytu
     const FONT: number[] = [
@@ -367,7 +565,7 @@ namespace ST7735 {
     //% expandableArgumentMode="toggle"
     export function drawText(text: string, x: number, y: number, color: number, bgColor?: number): void {
         // Pokud bgColor není definován, použij BLACK
-        const bg = (bgColor === undefined) ? BLACK : bgColor;
+        const bg = (bgColor === undefined) ? BLACK() : bgColor;
 
         const textLength = text.length
         const totalWidth = textLength * 4  // 3 pixely na znak + 1 pixel mezera
@@ -431,7 +629,7 @@ namespace ST7735 {
     //% expandableArgumentMode="toggle"
     export function drawScaledText(text: string, x: number, y: number, color: number, size: number, bgColor?: number): void {
         // Pokud bgColor není definován, použij BLACK
-        const bg = (bgColor === undefined) ? BLACK : bgColor;
+        const bg = (bgColor === undefined) ? BLACK() : bgColor;
         
         // Kontrola velikosti
         if (size < 1) size = 1;
@@ -454,7 +652,7 @@ namespace ST7735 {
         fillRect(startX, y, totalWidth, charHeight, bg);
 
         const hi = (color >> 8) & 0xFF;
-        const lo = color & 0xFF;
+        const lo = (color & 0xFF);
 
         for (let charIdx = 0; charIdx < textLength; charIdx++) {
             const charCode = text.charCodeAt(charIdx) - 32;  // 32 = mezera, první znak
